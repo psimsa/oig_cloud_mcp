@@ -16,8 +16,10 @@ Server will be available at: **http://localhost:8000/mcp**
 
 ## Test the Server
 
+Use the provided command-line tester:
+
 ```bash
-python test_client.py
+python cli_tester.py get_basic_data
 ```
 
 ## Quick curl Test
@@ -47,6 +49,11 @@ The MCP endpoint must include `/mcp` path!
 
 ## Available Tools
 
-- `check_auth` - Authenticate and get session information
+- `get_basic_data` - Fetch a real-time snapshot of the PV system
   - Parameters: `email`, `password`
-  - Returns: Session ID preview and cache status
+
+- `get_extended_data` - Retrieve historical time-series data
+  - Parameters: `email`, `password`, `start_date`, `end_date`
+
+- `get_notifications` - Get system alerts and informational messages
+  - Parameters: `email`, `password`

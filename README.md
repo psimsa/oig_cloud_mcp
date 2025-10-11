@@ -65,25 +65,32 @@ async def main():
             tools = await session.list_tools()
             print(f"Available tools: {[tool.name for tool in tools.tools]}")
             
-            # Call the check_auth tool
-            result = await session.call_tool(
-                "check_auth",
-                arguments={
-                    "email": "user@example.com",
-                    "password": "your_password"
-                }
-            )
-            print(f"Result: {result.content[0].text}")
+      # Call one of the OIG tools, for example get_basic_data
+      result = await session.call_tool(
+        "get_basic_data",
+        arguments={
+          "email": "user@example.com",
+          "password": "your_password"
+        }
+      )
+      if getattr(result, "structuredContent", None):
+        import json
+        print(json.dumps(result.structuredContent, indent=2))
+      else:
+        # Fallback to textual/stream content
+        for content in getattr(result, "content", []):
+          print(getattr(content, "text", content))
 
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-A complete example client is provided in `test_client.py`. Run it with:
+A command-line tester is provided in `cli_tester.py`. Examples:
 
 ```bash
-python test_client.py
+python cli_tester.py get_basic_data
+python cli_tester.py get_extended_data --start-date 2025-01-01 --end-date 2025-01-31
 ```
 
 #### Using Claude Desktop
@@ -123,38 +130,23 @@ curl -X POST http://localhost:8000/mcp \
 
 - **FastMCP Integration**: Uses the official MCP SDK's FastMCP for clean, decorator-based tool definitions
 - **Session Management**: Caches authentication sessions with configurable eviction time (12 hours)
-- **Authentication Tool**: `check_auth` tool validates credentials and returns session information
+- **OIG Tools**: `get_basic_data`, `get_extended_data`, and `get_notifications` are provided and return mock data for testing
 - **StreamableHTTP Transport**: Modern, scalable HTTP-based transport with SSE support
 
 ## Available Tools
 
-### `check_auth`
+`get_basic_data` - Fetches a real-time snapshot of the PV system and returns the mock payload from `sample-response.json` in the `data` field.
 
-Authenticates with OIG Cloud and returns session information.
+`get_extended_data` - Retrieves historical time-series data for a specified period. Accepts `start_date` and `end_date` parameters (YYYY-MM-DD) which are informational in the mock implementation.
 
-**Parameters:**
-- `email` (string, required): User email address
-- `password` (string, required): User password
-
-**Returns:**
-```json
-{
-  "email": "user@example.com",
-  "password_length": 12,
-  "cache_status": "new_session_created",
-  "session_id_preview": "a1b2...c3d4"
-}
-```
-
-**Cache Status Values:**
-- `new_session_created`: Fresh authentication with OIG Cloud API
-- `session_from_cache`: Retrieved from local cache (no API call)
+`get_notifications` - Fetches system alerts, warnings, and informational messages. Currently returns an empty notifications list in the mock implementation.
 
 ## Architecture
 
-- **main.py**: FastMCP server implementation with tool definitions
+- **tools.py**: MCP tool definitions (`get_basic_data`, `get_extended_data`, `get_notifications`)
+- **main.py**: Server runner that imports `oig_tools` and starts the FastMCP server
 - **session_manager.py**: Session caching and OIG Cloud API authentication
-- **test_client.py**: Example client demonstrating proper connection
+- **cli_tester.py**: Command-line test client for invoking the MCP tools
 - **requirements.txt**: Dependencies including `mcp` SDK
 
 ## Configuration
@@ -162,8 +154,8 @@ Authenticates with OIG Cloud and returns session information.
 Server settings can be modified in `main.py`:
 
 ```python
-mcp.settings.host = "0.0.0.0"  # Listen address
-mcp.settings.port = 8000       # Listen port
+oig_tools.settings.host = "0.0.0.0"  # Listen address
+oig_tools.settings.port = 8000       # Listen port
 ```
 
 Session cache eviction time can be configured in `session_manager.py`:
