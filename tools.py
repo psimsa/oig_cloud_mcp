@@ -1,5 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 from session_manager import session_cache
+from security import whitelist, RateLimitException
 import json
 from typing import Any, Dict
 
@@ -22,7 +23,17 @@ async def get_basic_data(email: str, password: str) -> dict:
 
     Returns mock data loaded from `sample-response.json` in the `data` field.
     """
-    session_id, status = await session_cache.get_session_id(email, password)
+    # Whitelist enforcement
+    if not whitelist.is_allowed(email):
+        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+
+    try:
+        session_id, status = await session_cache.get_session_id(email, password)
+    except RateLimitException as e:
+        return {"status": "error", "message": str(e)}
+    except ConnectionError:
+        return {"status": "error", "message": "Authentication failed with OIG Cloud."}
+
     return {
         "status": "success",
         "cache_status": status,
@@ -38,7 +49,17 @@ async def get_extended_data(email: str, password: str, start_date: str, end_date
     Date range parameters are accepted for compatibility but ignored for the
     current mock implementation.
     """
-    session_id, status = await session_cache.get_session_id(email, password)
+    # Whitelist enforcement
+    if not whitelist.is_allowed(email):
+        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+
+    try:
+        session_id, status = await session_cache.get_session_id(email, password)
+    except RateLimitException as e:
+        return {"status": "error", "message": str(e)}
+    except ConnectionError:
+        return {"status": "error", "message": "Authentication failed with OIG Cloud."}
+
     return {
         "status": "success",
         "cache_status": status,
@@ -53,7 +74,17 @@ async def get_notifications(email: str, password: str) -> dict:
 
     The sample data does not contain notifications; return an empty list.
     """
-    session_id, status = await session_cache.get_session_id(email, password)
+    # Whitelist enforcement
+    if not whitelist.is_allowed(email):
+        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+
+    try:
+        session_id, status = await session_cache.get_session_id(email, password)
+    except RateLimitException as e:
+        return {"status": "error", "message": str(e)}
+    except ConnectionError:
+        return {"status": "error", "message": "Authentication failed with OIG Cloud."}
+
     return {
         "status": "success",
         "cache_status": status,

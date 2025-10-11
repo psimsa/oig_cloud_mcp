@@ -133,6 +133,23 @@ curl -X POST http://localhost:8000/mcp \
 - **OIG Tools**: `get_basic_data`, `get_extended_data`, and `get_notifications` are provided and return mock data for testing
 - **StreamableHTTP Transport**: Modern, scalable HTTP-based transport with SSE support
 
+## Security Features
+
+This release adds basic security protections for live authentication:
+
+- Whitelist: Only users listed in `whitelist.txt` are permitted to request
+  authentication and use the tools. Add your OIG Cloud email (one per line)
+  to `whitelist.txt` located in the project root.
+
+- Rate limiting: Repeated failed authentication attempts are tracked per-user
+  and will temporarily lock the account using an exponential backoff strategy
+  (defaults: 3 failures -> initial 10s lockout, doubling up to 30s).
+
+These protections are implemented for single-process deployments and are
+intended to be a minimal, easily-understood safety mechanism. For production
+you should replace the in-memory rate-limiter with a central store such as
+Redis so lockouts persist across processes and machines.
+
 ## Available Tools
 
 `get_basic_data` - Fetches a real-time snapshot of the PV system and returns the mock payload from `sample-response.json` in the `data` field.
