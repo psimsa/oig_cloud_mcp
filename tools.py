@@ -1,93 +1,105 @@
 from mcp.server.fastmcp import FastMCP
 from session_manager import session_cache
 from security import whitelist, RateLimitException
-import json
-from typing import Any, Dict
 
 # Create a tools instance
 oig_tools = FastMCP("OIG Cloud Tools")
 
-# Mock data will be loaded from sample-response.json
-MOCK_DATA: Dict[str, Any] = {}
-try:
-    with open("sample-response.json", "r") as f:
-        MOCK_DATA = json.load(f)
-except FileNotFoundError:
-    print("Warning: sample-response.json not found. Tools will return empty data.")
-    MOCK_DATA = {}
-
 
 @oig_tools.tool()
 async def get_basic_data(email: str, password: str) -> dict:
-    """Fetches a real-time snapshot of the PV system.
+    """Fetches a real-time snapshot of the PV system from the user's OIG Cloud account.
 
-    Returns mock data loaded from `sample-response.json` in the `data` field.
+    Uses an authenticated OigCloudApi client supplied by `session_manager.SessionCache`.
     """
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
         return {"status": "error", "message": "Authorization denied: User not on whitelist."}
 
     try:
-        session_id, status = await session_cache.get_session_id(email, password)
+        client, status = await session_cache.get_session_id(email, password)
     except RateLimitException as e:
         return {"status": "error", "message": str(e)}
     except ConnectionError:
         return {"status": "error", "message": "Authentication failed with OIG Cloud."}
 
+    # Use the authenticated client to fetch live stats
+    try:
+        live_data = await client.get_stats()
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to fetch data from OIG Cloud: {e}"}
+
+    session_id = getattr(client, "_phpsessid", "") or ""
+    preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+
     return {
         "status": "success",
         "cache_status": status,
-        "session_id_preview": f"{session_id[:4]}...{session_id[-4:]}",
-        "data": MOCK_DATA,
+        "session_id_preview": preview,
+        "data": live_data,
     }
 
 
 @oig_tools.tool()
 async def get_extended_data(email: str, password: str, start_date: str, end_date: str) -> dict:
-    """Retrieves historical time-series data for a specified period.
+    """Retrieves historical time-series data for a specified period from OIG Cloud.
 
-    Date range parameters are accepted for compatibility but ignored for the
-    current mock implementation.
+    The `name` parameter for the underlying API is hardcoded to "history".
     """
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
         return {"status": "error", "message": "Authorization denied: User not on whitelist."}
 
     try:
-        session_id, status = await session_cache.get_session_id(email, password)
+        client, status = await session_cache.get_session_id(email, password)
     except RateLimitException as e:
         return {"status": "error", "message": str(e)}
     except ConnectionError:
         return {"status": "error", "message": "Authentication failed with OIG Cloud."}
 
+    # Call the extended stats endpoint with the name "history"
+    try:
+        live_data = await client.get_extended_stats("history", start_date, end_date)
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to fetch historical data from OIG Cloud: {e}"}
+
+    session_id = getattr(client, "_phpsessid", "") or ""
+    preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+
     return {
         "status": "success",
         "cache_status": status,
-        "session_id_preview": f"{session_id[:4]}...{session_id[-4:]}",
-        "data": MOCK_DATA,
+        "session_id_preview": preview,
+        "data": live_data,
     }
 
 
 @oig_tools.tool()
 async def get_notifications(email: str, password: str) -> dict:
-    """Fetches system alerts, warnings, and informational messages.
-
-    The sample data does not contain notifications; return an empty list.
+    """Fetches system alerts, warnings, and informational messages from OIG Cloud.
     """
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
         return {"status": "error", "message": "Authorization denied: User not on whitelist."}
 
     try:
-        session_id, status = await session_cache.get_session_id(email, password)
+        client, status = await session_cache.get_session_id(email, password)
     except RateLimitException as e:
         return {"status": "error", "message": str(e)}
     except ConnectionError:
         return {"status": "error", "message": "Authentication failed with OIG Cloud."}
 
+    try:
+        live_data = await client.get_notifications()
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to fetch notifications from OIG Cloud: {e}"}
+
+    session_id = getattr(client, "_phpsessid", "") or ""
+    preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+
     return {
         "status": "success",
         "cache_status": status,
-        "session_id_preview": f"{session_id[:4]}...{session_id[-4:]}",
-        "data": {"notifications": []},
+        "session_id_preview": preview,
+        "data": live_data,
     }

@@ -22,6 +22,12 @@ Use the provided command-line tester:
 python cli_tester.py get_basic_data
 ```
 
+Ensure you have activated the project's virtual environment before running Python tools:
+
+```bash
+source .venv/bin/activate
+```
+
 ## Quick curl Test
 
 ```bash
@@ -57,3 +63,5 @@ The MCP endpoint must include `/mcp` path!
 
 - `get_notifications` - Get system alerts and informational messages
   - Parameters: `email`, `password`
+  
+Note: These tools fetch live data from the authenticated user's OIG Cloud account. Ensure the email is present in `whitelist.txt` and the credentials are valid before calling the tools.

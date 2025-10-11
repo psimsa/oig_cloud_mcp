@@ -12,6 +12,12 @@ This server implements the Model Context Protocol using FastMCP from the officia
 pip install -r requirements.txt
 ```
 
+Before running any Python command-line tools (for example `cli_tester.py`), ensure the project's virtual environment is activated:
+
+```bash
+source .venv/bin/activate
+```
+
 ## Usage
 
 ### Starting the Server
@@ -130,7 +136,7 @@ curl -X POST http://localhost:8000/mcp \
 
 - **FastMCP Integration**: Uses the official MCP SDK's FastMCP for clean, decorator-based tool definitions
 - **Session Management**: Caches authentication sessions with configurable eviction time (12 hours)
-- **OIG Tools**: `get_basic_data`, `get_extended_data`, and `get_notifications` are provided and return mock data for testing
+- **OIG Tools**: `get_basic_data`, `get_extended_data`, and `get_notifications` are provided and fetch live data from the user's OIG Cloud account
 - **StreamableHTTP Transport**: Modern, scalable HTTP-based transport with SSE support
 
 ## Security Features
@@ -152,11 +158,11 @@ Redis so lockouts persist across processes and machines.
 
 ## Available Tools
 
-`get_basic_data` - Fetches a real-time snapshot of the PV system and returns the mock payload from `sample-response.json` in the `data` field.
+`get_basic_data` - Fetches a real-time snapshot of the PV system from the authenticated user's OIG Cloud account and returns the live payload from the OIG Cloud API.
 
-`get_extended_data` - Retrieves historical time-series data for a specified period. Accepts `start_date` and `end_date` parameters (YYYY-MM-DD) which are informational in the mock implementation.
+`get_extended_data` - Retrieves historical time-series data for a specified period. Accepts `start_date` and `end_date` parameters (YYYY-MM-DD) which are forwarded to the OIG Cloud API.
 
-`get_notifications` - Fetches system alerts, warnings, and informational messages. Currently returns an empty notifications list in the mock implementation.
+`get_notifications` - Fetches system alerts, warnings, and informational messages from the user's OIG Cloud account.
 
 ## Architecture
 

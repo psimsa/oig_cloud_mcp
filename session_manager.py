@@ -19,10 +19,10 @@ class SessionCache:
         """Creates a secure hash key from credentials."""
         return hashlib.sha256(f"{email}:{password}".encode()).hexdigest()
  
-    async def get_session_id(self, email: str, password: str) -> Tuple[str, str]:
+    async def get_session_id(self, email: str, password: str) -> Tuple[OigCloudApi, str]:
         """
-        Get a valid session ID, authenticating if necessary.
-        Returns a tuple of (session_id, status), where status is
+        Get a valid, authenticated OigCloudApi client, authenticating if necessary.
+        Returns a tuple of (client, status), where status is
         'session_from_cache' or 'new_session_created'.
         """
         key = self._get_key(email, password)
@@ -34,9 +34,15 @@ class SessionCache:
                 del self._cache[k]
 
             if key in self._cache:
+                # Cache stores only the raw session id (string). When we hit the cache
+                # we construct a fresh client instance and set the session id on it so
+                # callers receive a ready-to-use authenticated client object.
                 session_id, last_used = self._cache[key]
                 self._cache[key] = (session_id, time.time())
-                return session_id, "session_from_cache"
+                client = OigCloudApi(username=email, password=password, no_telemetry=True)
+                # The underlying client library uses _phpsessid as the session token.
+                client._phpsessid = session_id
+                return client, "session_from_cache"
 
             # If not in cache, authenticate to get a new one
             # Enforce rate-limiter before attempting to authenticate.
@@ -51,10 +57,13 @@ class SessionCache:
             try:
                 if await client.authenticate():
                     new_session_id = client._phpsessid
+                    # Cache the session id string only; client objects are created on demand
+                    # so we avoid storing complex objects in the in-memory cache.
                     self._cache[key] = (new_session_id, time.time())
                     await rate_limiter.record_success(email)
                     print(f"Authentication successful for '{email}'.")
-                    return new_session_id, "new_session_created"
+                    # Return the authenticated client instance for immediate use by callers.
+                    return client, "new_session_created"
                 else:
                     await rate_limiter.record_failure(email)
                     raise ConnectionError("Failed to authenticate with OIG Cloud.")

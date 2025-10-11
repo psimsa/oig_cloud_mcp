@@ -10,6 +10,17 @@ import asyncio
 import json
 from typing import Dict, Any
 
+import os
+import sys
+
+# Enforce virtual environment activation for safety per project instructions
+if not os.environ.get("VIRTUAL_ENV"):
+    print(
+        "Error: Python virtual environment is not active.\n"
+        "Activate it before running this tool: source .venv/bin/activate"
+    )
+    sys.exit(1)
+
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
