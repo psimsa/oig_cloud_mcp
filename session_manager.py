@@ -11,7 +11,8 @@ from security import rate_limiter, RateLimitException
  
 class SessionCache:
     def __init__(self, eviction_time_seconds: int = 43200): # 12 hours
-        self._cache: Dict[str, Tuple[str, float]] = {}
+        # Cache maps credential-hash -> (authenticated client instance, last_used_timestamp)
+        self._cache: Dict[str, Tuple[Any, float]] = {}
         self._eviction_time = eviction_time_seconds
         self._lock = asyncio.Lock()
         print("SessionCache initialized.")
@@ -68,16 +69,10 @@ class SessionCache:
                 del self._cache[k]
 
             if key in self._cache:
-                # Cache stores only the raw session id (string). When we hit the cache
-                # we construct a fresh client instance and set the session id on it so
-                # callers receive a ready-to-use authenticated client object.
-                session_id, last_used = self._cache[key]
-                self._cache[key] = (session_id, time.time())
-                # Import the real client lazily to avoid hard dependency in mock mode
-                from oig_cloud_client.api.oig_cloud_api import OigCloudApi
-                client = OigCloudApi(username=email, password=password, no_telemetry=True)
-                # The underlying client library uses _phpsessid as the session token.
-                client._phpsessid = session_id
+                # A client instance is already in the cache, reuse it.
+                client, last_used = self._cache[key]
+                # Update the last-used timestamp to prevent premature eviction.
+                self._cache[key] = (client, time.time())
                 return client, "session_from_cache"
 
             # If not in cache, authenticate to get a new one
@@ -94,10 +89,8 @@ class SessionCache:
             client = OigCloudApi(username=email, password=password, no_telemetry=True)
             try:
                 if await client.authenticate():
-                    new_session_id = client._phpsessid
-                    # Cache the session id string only; client objects are created on demand
-                    # so we avoid storing complex objects in the in-memory cache.
-                    self._cache[key] = (new_session_id, time.time())
+                    # Cache the entire authenticated client instance, not just the session ID.
+                    self._cache[key] = (client, time.time())
                     await rate_limiter.record_success(email)
                     print(f"Authentication successful for '{email}'.")
                     # Return the authenticated client instance for immediate use by callers.
