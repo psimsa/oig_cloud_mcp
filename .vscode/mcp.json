@@ -1,6 +1,6 @@
 {
 	"servers": {
-		"my-mcp-server-5e9abf6f": {
+		"oig-cloud": {
 			"url": "http://localhost:8000/mcp",
 			"type": "http"
 		}

@@ -1,10 +1,11 @@
 import asyncio
 import time
 import hashlib
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Any
  
-# Note: oig_cloud_client is installed from git in the venv
-from oig_cloud_client.api.oig_cloud_api import OigCloudApi
+# The real OigCloudApi is imported only when needed so that local mock
+# mode (OIG_CLOUD_MOCK=1) can run without the external dependency.
+import os
 import secrets
 from security import rate_limiter, RateLimitException
  
@@ -19,12 +20,45 @@ class SessionCache:
         """Creates a secure hash key from credentials."""
         return hashlib.sha256(f"{email}:{password}".encode()).hexdigest()
  
-    async def get_session_id(self, email: str, password: str) -> Tuple[OigCloudApi, str]:
+    async def get_session_id(self, email: str, password: str) -> Tuple[Any, str]:
         """
         Get a valid, authenticated OigCloudApi client, authenticating if necessary.
         Returns a tuple of (client, status), where status is
         'session_from_cache' or 'new_session_created'.
         """
+        # Support a local mock mode for offline testing. When the environment
+        # variable OIG_CLOUD_MOCK is set to '1' we return a minimal mock client
+        # that serves the project's sample-response.json. This avoids making
+        # network calls during local verification and CI.
+        if os.environ.get("OIG_CLOUD_MOCK") == "1":
+            # Minimal mock client used only for testing. It provides the
+            # attributes and coroutines the tools expect.
+            class _MockClient:
+                def __init__(self, sample_path):
+                    self._phpsessid = "mock-session"
+                    self._sample_path = sample_path
+
+                async def authenticate(self):
+                    return True
+
+                async def get_stats(self):
+                    import json
+                    from pathlib import Path
+
+                    p = Path(self._sample_path)
+                    if p.exists():
+                        return json.loads(p.read_text())
+                    return {}
+
+                async def get_extended_stats(self, name, start_date, end_date):
+                    return {}
+
+                async def get_notifications(self):
+                    return []
+
+            sample_path = os.path.join(os.path.dirname(__file__), "sample-response.json")
+            return _MockClient(sample_path), "mock_session"
+
         key = self._get_key(email, password)
         async with self._lock:
             # Clean up expired sessions first
@@ -39,6 +73,8 @@ class SessionCache:
                 # callers receive a ready-to-use authenticated client object.
                 session_id, last_used = self._cache[key]
                 self._cache[key] = (session_id, time.time())
+                # Import the real client lazily to avoid hard dependency in mock mode
+                from oig_cloud_client.api.oig_cloud_api import OigCloudApi
                 client = OigCloudApi(username=email, password=password, no_telemetry=True)
                 # The underlying client library uses _phpsessid as the session token.
                 client._phpsessid = session_id
@@ -52,7 +88,9 @@ class SessionCache:
                 # Re-raise so callers (tools) can turn this into a user-visible error
                 raise
 
-            # Perform real authentication against OIG Cloud API
+            # Perform real authentication against OIG Cloud API. Import lazily
+            # to keep local mock testing simple.
+            from oig_cloud_client.api.oig_cloud_api import OigCloudApi
             client = OigCloudApi(username=email, password=password, no_telemetry=True)
             try:
                 if await client.authenticate():

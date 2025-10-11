@@ -1,0 +1,58 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Launch OIG Cloud MCP Server (main.py)",
+      "program": "${workspaceFolder}/main.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true,
+      "subProcess": true,
+      "python": "${command:python.interpreterPath}"
+    },
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Run CLI Tester (cli_tester.py) - mock",
+      "program": "${workspaceFolder}/cli_tester.py",
+      "args": [
+        "get_basic_data"
+      ],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "VIRTUAL_ENV": "${workspaceFolder}/.venv",
+        "OIG_CLOUD_MOCK": "1"
+      },
+      "justMyCode": true,
+      "python": "${command:python.interpreterPath}"
+    },
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Run selected Python file (pick entrypoint)",
+      "program": "${workspaceFolder}/${input:entrypoint}",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true,
+      "env": {
+        "VIRTUAL_ENV": "${workspaceFolder}/.venv"
+      },
+      "python": "${command:python.interpreterPath}"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "entrypoint",
+      "type": "pickString",
+      "description": "Select the Python entrypoint to run (main.py starts the server; cli_tester.py runs the CLI tester; transformer.py runs a quick smoke test)",
+      "options": [
+        "main.py",
+        "cli_tester.py",
+        "transformer.py"
+      ]
+    }
+  ]
+}

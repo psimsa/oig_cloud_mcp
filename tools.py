@@ -1,6 +1,7 @@
 from mcp.server.fastmcp import FastMCP
 from session_manager import session_cache
 from security import whitelist, RateLimitException
+from transformer import transform_get_stats
 
 # Create a tools instance
 oig_tools = FastMCP("OIG Cloud Tools")
@@ -32,11 +33,18 @@ async def get_basic_data(email: str, password: str) -> dict:
     session_id = getattr(client, "_phpsessid", "") or ""
     preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
 
+    # Transform the raw API response into the AI-friendly schema
+    try:
+        transformed_data = transform_get_stats(live_data)
+    except Exception:
+        # Fall back to raw payload if transformation fails for any reason
+        transformed_data = live_data
+
     return {
         "status": "success",
         "cache_status": status,
         "session_id_preview": preview,
-        "data": live_data,
+        "data": transformed_data,
     }
 
 
