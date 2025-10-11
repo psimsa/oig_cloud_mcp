@@ -115,6 +115,18 @@ class MCPToolServer:
                     self._send_json({"error": "Invalid JSON payload."}, status=400)
                     return
 
+                # Support an optional 'auth_context' wrapper by flattening its
+                # keys into the top-level payload so handlers that expect
+                # credentials as individual parameters (e.g. email, password)
+                # will receive them transparently.
+                if isinstance(payload, dict):
+                    auth_ctx = payload.get("auth_context")
+                    if isinstance(auth_ctx, dict):
+                        for k, v in auth_ctx.items():
+                            # do not overwrite explicit top-level keys
+                            if k not in payload:
+                                payload[k] = v
+
                 # Prepare kwargs for the handler based on its signature
                 handler = tool.handler
                 try:
