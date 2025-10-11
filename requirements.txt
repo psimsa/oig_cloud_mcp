@@ -1,0 +1,2 @@
+mcp
+oig-cloud-client @ git+https://github.com/psimsa/oig_cloud_client.git
