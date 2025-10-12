@@ -65,7 +65,8 @@ async def get_basic_data(ctx: Context) -> dict:
     """Fetches a real-time snapshot of the PV system from the user's OIG Cloud account.
 
     Uses an authenticated OigCloudApi client supplied by `session_manager.SessionCache`.
-    Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
+    Credentials may be provided either via the standard HTTP `Authorization: Basic` header
+    (Base64-encoded `email:password`) or via the `X-OIG-Email` / `X-OIG-Password` headers.
     """
     try:
         email, password = _get_credentials(ctx)
@@ -118,7 +119,8 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
     """Retrieves historical time-series data for a specified period from OIG Cloud.
 
     The `name` parameter for the underlying API is hardcoded to "history".
-    Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
+    Credentials may be provided either via the standard HTTP `Authorization: Basic` header
+    (Base64-encoded `email:password`) or via the `X-OIG-Email` / `X-OIG-Password` headers.
     """
     try:
         email, password = _get_credentials(ctx)
@@ -163,7 +165,8 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
 async def get_notifications(ctx: Context) -> dict:
     """Fetches system alerts, warnings, and informational messages from OIG Cloud.
 
-    Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
+    Credentials may be provided either via the standard HTTP `Authorization: Basic` header
+    (Base64-encoded `email:password`) or via the `X-OIG-Email` / `X-OIG-Password` headers.
     """
     try:
         email, password = _get_credentials(ctx)
