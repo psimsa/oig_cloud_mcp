@@ -2,25 +2,25 @@ import asyncio
 import time
 import hashlib
 from typing import Dict, Tuple, Any
- 
+
 # The real OigCloudApi is imported only when needed so that local mock
 # mode (OIG_CLOUD_MOCK=1) can run without the external dependency.
 import os
-import secrets
 from security import rate_limiter, RateLimitException
- 
+
+
 class SessionCache:
-    def __init__(self, eviction_time_seconds: int = 43200): # 12 hours
+    def __init__(self, eviction_time_seconds: int = 43200):  # 12 hours
         # Cache maps credential-hash -> (authenticated client instance, last_used_timestamp)
         self._cache: Dict[str, Tuple[Any, float]] = {}
         self._eviction_time = eviction_time_seconds
         self._lock = asyncio.Lock()
         print("SessionCache initialized.")
- 
+
     def _get_key(self, email: str, password: str) -> str:
         """Creates a secure hash key from credentials."""
         return hashlib.sha256(f"{email}:{password}".encode()).hexdigest()
- 
+
     async def get_session_id(self, email: str, password: str) -> Tuple[Any, str]:
         """
         Get a valid, authenticated OigCloudApi client, authenticating if necessary.
@@ -59,7 +59,7 @@ class SessionCache:
 
                 async def get_notifications(self):
                     return []
-                
+
                 # Provide minimal implementations for write actions so that
                 # tools that call these methods in mock mode behave predictably.
                 async def set_box_mode(self, mode):
@@ -70,14 +70,20 @@ class SessionCache:
                     # Accept numeric flags (1/0) and pretend success.
                     return True
 
-            sample_path = os.path.join(os.path.dirname(__file__), "sample-response.json")
+            sample_path = os.path.join(
+                os.path.dirname(__file__), "sample-response.json"
+            )
             return _MockClient(sample_path), "mock_session"
 
         key = self._get_key(email, password)
         async with self._lock:
             # Clean up expired sessions first
             current_time = time.time()
-            expired_keys = [k for k, (_, ts) in self._cache.items() if current_time - ts > self._eviction_time]
+            expired_keys = [
+                k
+                for k, (_, ts) in self._cache.items()
+                if current_time - ts > self._eviction_time
+            ]
             for k in expired_keys:
                 del self._cache[k]
 
@@ -99,6 +105,7 @@ class SessionCache:
             # Perform real authentication against OIG Cloud API. Import lazily
             # to keep local mock testing simple.
             from oig_cloud_client.api.oig_cloud_api import OigCloudApi
+
             client = OigCloudApi(username=email, password=password, no_telemetry=True)
             try:
                 if await client.authenticate():
@@ -119,6 +126,7 @@ class SessionCache:
                 await rate_limiter.record_failure(email)
                 print(f"Authentication error for '{email}': {e}")
                 raise ConnectionError("Failed to authenticate with OIG Cloud.")
+
 
 # Create a single instance to be used by the server
 session_cache = SessionCache()

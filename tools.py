@@ -10,26 +10,28 @@ oig_tools = FastMCP("OIG Cloud Tools")
 
 def _get_creds_from_headers(ctx: Context) -> Tuple[str, str]:
     """Extract email and password from request headers.
-    
+
     Returns:
         Tuple of (email, password)
-        
+
     Raises:
         ValueError: If headers are missing or credentials not found
     """
     request = ctx.request_context.request
     if not request:
         raise ValueError("Request context not available")
-    
+
     # Access headers from Starlette Request object
     headers = request.headers
-    
+
     email = headers.get("x-oig-email")
     password = headers.get("x-oig-password")
-    
+
     if not email or not password:
-        raise ValueError("Missing required authentication headers: X-OIG-Email and X-OIG-Password")
-    
+        raise ValueError(
+            "Missing required authentication headers: X-OIG-Email and X-OIG-Password"
+        )
+
     return email, password
 
 
@@ -55,10 +57,13 @@ async def get_basic_data(ctx: Context) -> dict:
         email, password = _get_creds_from_headers(ctx)
     except ValueError as e:
         return {"status": "error", "message": str(e)}
-    
+
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
-        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+        return {
+            "status": "error",
+            "message": "Authorization denied: User not on whitelist.",
+        }
 
     try:
         client, status = await session_cache.get_session_id(email, password)
@@ -71,7 +76,10 @@ async def get_basic_data(ctx: Context) -> dict:
     try:
         live_data = await client.get_stats()
     except Exception as e:
-        return {"status": "error", "message": f"Failed to fetch data from OIG Cloud: {e}"}
+        return {
+            "status": "error",
+            "message": f"Failed to fetch data from OIG Cloud: {e}",
+        }
 
     session_id = getattr(client, "_phpsessid", "") or ""
     preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
@@ -102,10 +110,13 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
         email, password = _get_creds_from_headers(ctx)
     except ValueError as e:
         return {"status": "error", "message": str(e)}
-    
+
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
-        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+        return {
+            "status": "error",
+            "message": "Authorization denied: User not on whitelist.",
+        }
 
     try:
         client, status = await session_cache.get_session_id(email, password)
@@ -118,7 +129,10 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
     try:
         live_data = await client.get_extended_stats("history", start_date, end_date)
     except Exception as e:
-        return {"status": "error", "message": f"Failed to fetch historical data from OIG Cloud: {e}"}
+        return {
+            "status": "error",
+            "message": f"Failed to fetch historical data from OIG Cloud: {e}",
+        }
 
     session_id = getattr(client, "_phpsessid", "") or ""
     preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
@@ -134,17 +148,20 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
 @oig_tools.tool()
 async def get_notifications(ctx: Context) -> dict:
     """Fetches system alerts, warnings, and informational messages from OIG Cloud.
-    
+
     Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
     """
     try:
         email, password = _get_creds_from_headers(ctx)
     except ValueError as e:
         return {"status": "error", "message": str(e)}
-    
+
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
-        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+        return {
+            "status": "error",
+            "message": "Authorization denied: User not on whitelist.",
+        }
 
     try:
         client, status = await session_cache.get_session_id(email, password)
@@ -156,7 +173,10 @@ async def get_notifications(ctx: Context) -> dict:
     try:
         live_data = await client.get_notifications()
     except Exception as e:
-        return {"status": "error", "message": f"Failed to fetch notifications from OIG Cloud: {e}"}
+        return {
+            "status": "error",
+            "message": f"Failed to fetch notifications from OIG Cloud: {e}",
+        }
 
     session_id = getattr(client, "_phpsessid", "") or ""
     preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
@@ -185,12 +205,18 @@ async def set_box_mode(ctx: Context, mode: str) -> dict:
     if _is_readonly(ctx):
         return {
             "status": "error",
-            "message": "Action denied. Server is in readonly mode. Set 'X-OIG-Readonly-Access: false' header to allow actions.",
+            "message": (
+                "Action denied. Server is in readonly mode. "
+                "Set 'X-OIG-Readonly-Access: false' header to allow actions."
+            ),
         }
 
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
-        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+        return {
+            "status": "error",
+            "message": "Authorization denied: User not on whitelist.",
+        }
 
     try:
         client, status = await session_cache.get_session_id(email, password)
@@ -200,11 +226,20 @@ async def set_box_mode(ctx: Context, mode: str) -> dict:
 
         success = await client.set_box_mode(mode)
         if success:
-            return {"status": "success", "message": f"Box mode successfully set to '{mode}'."}
+            return {
+                "status": "success",
+                "message": f"Box mode successfully set to '{mode}'.",
+            }
         else:
-            return {"status": "error", "message": "API call succeeded but failed to set box mode."}
+            return {
+                "status": "error",
+                "message": "API call succeeded but failed to set box mode.",
+            }
     except Exception as e:
-        return {"status": "error", "message": f"An error occurred while setting box mode: {e}"}
+        return {
+            "status": "error",
+            "message": f"An error occurred while setting box mode: {e}",
+        }
 
 
 @oig_tools.tool()
@@ -223,12 +258,18 @@ async def set_grid_delivery(ctx: Context, mode: int) -> dict:
     if _is_readonly(ctx):
         return {
             "status": "error",
-            "message": "Action denied. Server is in readonly mode. Set 'X-OIG-Readonly-Access: false' header to allow actions.",
+            "message": (
+                "Action denied. Server is in readonly mode. "
+                "Set 'X-OIG-Readonly-Access: false' header to allow actions."
+            ),
         }
 
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
-        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+        return {
+            "status": "error",
+            "message": "Authorization denied: User not on whitelist.",
+        }
 
     try:
         client, status = await session_cache.get_session_id(email, password)
@@ -238,8 +279,17 @@ async def set_grid_delivery(ctx: Context, mode: int) -> dict:
 
         success = await client.set_grid_delivery(mode)
         if success:
-            return {"status": "success", "message": f"Grid delivery mode successfully set to '{mode}'."}
+            return {
+                "status": "success",
+                "message": f"Grid delivery mode successfully set to '{mode}'.",
+            }
         else:
-            return {"status": "error", "message": "API call succeeded but failed to set grid delivery mode."}
+            return {
+                "status": "error",
+                "message": "API call succeeded but failed to set grid delivery mode.",
+            }
     except Exception as e:
-        return {"status": "error", "message": f"An error occurred while setting grid delivery mode: {e}"}
+        return {
+            "status": "error",
+            "message": f"An error occurred while setting grid delivery mode: {e}",
+        }

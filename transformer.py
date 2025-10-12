@@ -8,6 +8,7 @@ Public API
     Converts the raw response from client.get_stats() into the
     structured mapping defined in data_mapping_spec.md.
 """
+
 from typing import Any, Dict
 
 
@@ -61,13 +62,19 @@ def _transform_solar(actual_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 
     return {
         "string_1": _create_data_point(
-            fv_p1_kw, "kW", "Current power production from solar panel string 1.",
+            fv_p1_kw,
+            "kW",
+            "Current power production from solar panel string 1.",
         ),
         "string_2": _create_data_point(
-            fv_p2_kw, "kW", "Current power production from solar panel string 2.",
+            fv_p2_kw,
+            "kW",
+            "Current power production from solar panel string 2.",
         ),
         "total": _create_data_point(
-            total_kw, "kW", "Total current power production from all solar panels.",
+            total_kw,
+            "kW",
+            "Total current power production from all solar panels.",
         ),
     }
 
@@ -88,7 +95,9 @@ def _transform_battery(actual_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]
 
     return {
         "state_of_charge": _create_data_point(
-            soc, "%", "Current charge level of the battery.",
+            soc,
+            "%",
+            "Current charge level of the battery.",
         ),
         "power_flow": _create_data_point(
             bat_p_kw,
@@ -111,7 +120,9 @@ def _transform_household(actual_data: Dict[str, Any]) -> Dict[str, Dict[str, Any
 
     return {
         "total_load": _create_data_point(
-            aco_p_kw, "kW", "Total current electricity consumption of the household.",
+            aco_p_kw,
+            "kW",
+            "Total current electricity consumption of the household.",
         )
     }
 

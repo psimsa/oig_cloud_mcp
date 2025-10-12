@@ -195,6 +195,35 @@ The server uses:
 - **Session Caching**: 12-hour session cache to minimize authentication calls
 - **Uvicorn**: ASGI server for production-ready deployment
 
+### Testing
+
+This project includes a comprehensive testing suite with unit tests, integration tests, and automated CI/CD pipeline.
+
+#### Quick Start
+
+```bash
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Run all tests
+pytest
+
+# Run tests with verbose output
+pytest -v
+
+# Check code quality
+flake8 .
+black --check .
+```
+
+For detailed testing documentation, see [TESTING.md](TESTING.md).
+
+#### Test Coverage
+
+- **Unit Tests**: Pure functions in `transformer.py` and `security.py`
+- **Integration Tests**: Tool endpoints with mocked API calls
+- **CI/CD**: Automated testing on GitHub Actions for Python 3.11 and 3.12
+
 ## Troubleshooting
 
 ### 404 Not Found
