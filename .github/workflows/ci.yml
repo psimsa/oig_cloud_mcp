@@ -39,13 +39,30 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Set image tag(s)
+      id: set-tags
+      run: |
+        # Default CI tag
+        CI_TAG=ghcr.io/psimsa/oig_cloud_mcp:ci-${{ github.run_id }}
+        # Short SHA for additional traceability
+        SHORT_SHA=$(echo "${GITHUB_SHA:-unknown}" | cut -c1-7)
+
+        if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+          # On main, add :latest and a sha tag
+          echo "image_tags=${CI_TAG},ghcr.io/psimsa/oig_cloud_mcp:latest,ghcr.io/psimsa/oig_cloud_mcp:${SHORT_SHA}" >> $GITHUB_OUTPUT
+        else
+          # For other branches, sanitize branch name and include a branch tag
+          BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}" | sed -E 's/[^A-Za-z0-9._-]/-/g')
+          echo "image_tags=${CI_TAG},ghcr.io/psimsa/oig_cloud_mcp:branch-${BRANCH_NAME}" >> $GITHUB_OUTPUT
+        fi
+
     - name: Build and push Docker image to GHCR
       uses: docker/build-push-action@v4
       with:
         context: .
         file: Dockerfile
         push: true
-        tags: ghcr.io/psimsa/oig_cloud_mcp:ci-${{ github.run_id }}
+        tags: ${{ steps.set-tags.outputs.image_tags }}
 
     - name: Lint with flake8
       run: |
