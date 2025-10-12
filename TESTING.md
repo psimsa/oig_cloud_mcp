@@ -131,7 +131,7 @@ black .
 The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that automatically:
 
 1. Runs on every push/PR to `main` and `develop` branches
-2. Tests against Python 3.11 and 3.12
+2. Tests against Python 3.12 and 3.13
 3. Installs all dependencies
 4. Runs flake8 linting checks
 5. Validates code formatting with black
@@ -153,7 +153,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12", "3.13"]
 ```
 
 ## Test Fixtures and Mocking
