@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# Documentation & Config
+*.md
+*.json
+*.ini
+*.cfg
+LICENSE
+renovate.json
+
+# Local development
+.venv
+.vscode/
+__pycache__/
+.pytest_cache/
+.flake8
+
+# Tests - not needed in production image
+tests/
+
+# Docker files
+Dockerfile
+docker-compose.yml
