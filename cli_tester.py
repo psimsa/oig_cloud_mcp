@@ -25,8 +25,8 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
 
-async def call_tool(server_url: str, tool_name: str, arguments: Dict[str, Any]):
-    async with streamablehttp_client(server_url) as (read_stream, write_stream, _):
+async def call_tool(server_url: str, tool_name: str, arguments: Dict[str, Any], headers: Dict[str, str]):
+    async with streamablehttp_client(server_url, headers=headers) as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
             result = await session.call_tool(tool_name, arguments=arguments)
@@ -55,10 +55,7 @@ async def call_tool(server_url: str, tool_name: str, arguments: Dict[str, Any]):
 
 
 def build_arguments(ns: argparse.Namespace) -> Dict[str, Any]:
-    args: Dict[str, Any] = {
-        "email": ns.email,
-        "password": ns.password,
-    }
+    args: Dict[str, Any] = {}
     if ns.tool_name == "get_extended_data":
         # Include date parameters (may be empty strings if not supplied)
         args["start_date"] = ns.start_date or ""
@@ -80,8 +77,12 @@ async def main():
 
     ns = parser.parse_args()
     arguments = build_arguments(ns)
+    headers = {
+        "X-OIG-Email": ns.email,
+        "X-OIG-Password": ns.password,
+    }
     print(f"Calling {ns.tool_name} on {ns.url} with arguments: {arguments}")
-    await call_tool(ns.url, ns.tool_name, arguments)
+    await call_tool(ns.url, ns.tool_name, arguments, headers)
 
 
 if __name__ == "__main__":

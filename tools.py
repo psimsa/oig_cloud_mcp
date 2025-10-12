@@ -1,18 +1,50 @@
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP, Context
 from session_manager import session_cache
 from security import whitelist, RateLimitException
 from transformer import transform_get_stats
+from typing import Tuple
 
 # Create a tools instance
 oig_tools = FastMCP("OIG Cloud Tools")
 
 
+def _get_creds_from_headers(ctx: Context) -> Tuple[str, str]:
+    """Extract email and password from request headers.
+    
+    Returns:
+        Tuple of (email, password)
+        
+    Raises:
+        ValueError: If headers are missing or credentials not found
+    """
+    request = ctx.request_context.request
+    if not request:
+        raise ValueError("Request context not available")
+    
+    # Access headers from Starlette Request object
+    headers = request.headers
+    
+    email = headers.get("x-oig-email")
+    password = headers.get("x-oig-password")
+    
+    if not email or not password:
+        raise ValueError("Missing required authentication headers: X-OIG-Email and X-OIG-Password")
+    
+    return email, password
+
+
 @oig_tools.tool()
-async def get_basic_data(email: str, password: str) -> dict:
+async def get_basic_data(ctx: Context) -> dict:
     """Fetches a real-time snapshot of the PV system from the user's OIG Cloud account.
 
     Uses an authenticated OigCloudApi client supplied by `session_manager.SessionCache`.
+    Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
     """
+    try:
+        email, password = _get_creds_from_headers(ctx)
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+    
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
         return {"status": "error", "message": "Authorization denied: User not on whitelist."}
@@ -49,11 +81,17 @@ async def get_basic_data(email: str, password: str) -> dict:
 
 
 @oig_tools.tool()
-async def get_extended_data(email: str, password: str, start_date: str, end_date: str) -> dict:
+async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dict:
     """Retrieves historical time-series data for a specified period from OIG Cloud.
 
     The `name` parameter for the underlying API is hardcoded to "history".
+    Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
     """
+    try:
+        email, password = _get_creds_from_headers(ctx)
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+    
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
         return {"status": "error", "message": "Authorization denied: User not on whitelist."}
@@ -83,9 +121,16 @@ async def get_extended_data(email: str, password: str, start_date: str, end_date
 
 
 @oig_tools.tool()
-async def get_notifications(email: str, password: str) -> dict:
+async def get_notifications(ctx: Context) -> dict:
     """Fetches system alerts, warnings, and informational messages from OIG Cloud.
+    
+    Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
     """
+    try:
+        email, password = _get_creds_from_headers(ctx)
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+    
     # Whitelist enforcement
     if not whitelist.is_allowed(email):
         return {"status": "error", "message": "Authorization denied: User not on whitelist."}
