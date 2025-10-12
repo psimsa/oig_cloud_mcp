@@ -42,7 +42,9 @@ def _get_credentials(ctx: Context) -> Tuple[str, str]:
                     return email, password
             except (ValueError, base64.binascii.Error):
                 # Malformed token or split failure
-                raise ValueError("Malformed Authorization header; expected Base64-encoded 'email:password'.")
+                raise ValueError(
+                    "Malformed Authorization header; expected Base64-encoded 'email:password'."
+                )
             raise ValueError("Malformed Basic authentication header.")
 
     # Priority 2: Fallback to custom X-OIG headers for backward compatibility
