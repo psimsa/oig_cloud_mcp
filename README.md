@@ -83,6 +83,18 @@ curl -X POST http://localhost:8000/mcp \
   -d '{ ... tool call payload ... }'
 ```
 
+Some clients only allow an `Authorization: Bearer <token>` header; the server will
+accept either label provided the token is a Base64-encoded `email:password` pair.
+
+**Example using `Bearer` label with curl:**
+
+```bash
+curl -X POST http://localhost:8000/mcp \
+  -H "Authorization: Bearer dGVzdEBleGFtcGxlLmNvbTp0ZXN0X3Bhc3N3b3Jk" \
+  -H "Content-Type: application/json" \
+  -d '{ ... tool call payload ... }'
+```
+
 #### 2. Custom Headers (Alternate option)
 
 The server also accepts credentials via two custom headers. This is an equally valid
