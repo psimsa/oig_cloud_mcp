@@ -134,13 +134,29 @@ async def main():
         type=int,
         help="The mode for the 'set_grid_delivery' action (e.g., 1 or 0).",
     )
+    parser.add_argument(
+        "--auth-mode",
+        choices=["header", "basic"],
+        default="header",
+        help="The authentication method to use.",
+    )
 
     ns = parser.parse_args()
     arguments = build_arguments(ns)
-    headers = {
-        "X-OIG-Email": ns.email,
-        "X-OIG-Password": ns.password,
-    }
+
+    headers = {}
+    if ns.auth_mode == "basic":
+        print("Using Basic Authentication.")
+        import base64
+
+        creds = f"{ns.email}:{ns.password}"
+        token = base64.b64encode(creds.encode()).decode()
+        headers["Authorization"] = f"Basic {token}"
+    else:
+        print("Using custom X-OIG header authentication.")
+        headers["X-OIG-Email"] = ns.email
+        headers["X-OIG-Password"] = ns.password
+
     if ns.actions:
         headers["X-OIG-Readonly-Access"] = "false"
         print("Action mode enabled: Sending 'X-OIG-Readonly-Access: false' header.")

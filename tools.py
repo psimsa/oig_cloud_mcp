@@ -3,36 +3,50 @@ from session_manager import session_cache
 from security import whitelist, RateLimitException
 from transformer import transform_get_stats
 from typing import Tuple
+import base64
 
 # Create a tools instance
 oig_tools = FastMCP("OIG Cloud Tools")
 
 
-def _get_creds_from_headers(ctx: Context) -> Tuple[str, str]:
-    """Extract email and password from request headers.
+def _get_credentials(ctx: Context) -> Tuple[str, str]:
+    """Extracts email and password from the request, supporting both Basic Auth
+    and custom X-OIG headers with a preference for Basic Auth.
 
     Returns:
         Tuple of (email, password)
 
     Raises:
-        ValueError: If headers are missing or credentials not found
+        ValueError: If credentials are not found or are malformed.
     """
     request = ctx.request_context.request
     if not request:
         raise ValueError("Request context not available")
 
-    # Access headers from Starlette Request object
     headers = request.headers
 
+    # Priority 1: Check for standard Authorization: Basic header
+    auth_header = headers.get("authorization")
+    if auth_header and auth_header.lower().startswith("basic "):
+        try:
+            token = auth_header.split(" ")[1]
+            decoded_creds = base64.b64decode(token).decode("utf-8")
+            email, password = decoded_creds.split(":", 1)
+            if email and password:
+                return email, password
+        except (IndexError, ValueError, base64.binascii.Error):
+            raise ValueError("Malformed Basic authentication header.")
+
+    # Priority 2: Fallback to custom X-OIG headers for backward compatibility
     email = headers.get("x-oig-email")
     password = headers.get("x-oig-password")
+    if email and password:
+        return email, password
 
-    if not email or not password:
-        raise ValueError(
-            "Missing required authentication headers: X-OIG-Email and X-OIG-Password"
-        )
-
-    return email, password
+    # If neither method provides credentials, fail
+    raise ValueError(
+        "Missing authentication. Provide credentials via 'Authorization: Basic' header or 'X-OIG-Email'/'X-OIG-Password' headers."
+    )
 
 
 def _is_readonly(ctx: Context) -> bool:
@@ -51,10 +65,11 @@ async def get_basic_data(ctx: Context) -> dict:
     """Fetches a real-time snapshot of the PV system from the user's OIG Cloud account.
 
     Uses an authenticated OigCloudApi client supplied by `session_manager.SessionCache`.
-    Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
+    Credentials may be provided either via the standard HTTP `Authorization: Basic` header
+    (Base64-encoded `email:password`) or via the `X-OIG-Email` / `X-OIG-Password` headers.
     """
     try:
-        email, password = _get_creds_from_headers(ctx)
+        email, password = _get_credentials(ctx)
     except ValueError as e:
         return {"status": "error", "message": str(e)}
 
@@ -104,10 +119,11 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
     """Retrieves historical time-series data for a specified period from OIG Cloud.
 
     The `name` parameter for the underlying API is hardcoded to "history".
-    Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
+    Credentials may be provided either via the standard HTTP `Authorization: Basic` header
+    (Base64-encoded `email:password`) or via the `X-OIG-Email` / `X-OIG-Password` headers.
     """
     try:
-        email, password = _get_creds_from_headers(ctx)
+        email, password = _get_credentials(ctx)
     except ValueError as e:
         return {"status": "error", "message": str(e)}
 
@@ -149,10 +165,11 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
 async def get_notifications(ctx: Context) -> dict:
     """Fetches system alerts, warnings, and informational messages from OIG Cloud.
 
-    Credentials are extracted from X-OIG-Email and X-OIG-Password headers.
+    Credentials may be provided either via the standard HTTP `Authorization: Basic` header
+    (Base64-encoded `email:password`) or via the `X-OIG-Email` / `X-OIG-Password` headers.
     """
     try:
-        email, password = _get_creds_from_headers(ctx)
+        email, password = _get_credentials(ctx)
     except ValueError as e:
         return {"status": "error", "message": str(e)}
 
@@ -197,7 +214,7 @@ async def set_box_mode(ctx: Context, mode: str) -> dict:
     the 'X-OIG-Readonly-Access' header to 'false'.
     """
     try:
-        email, password = _get_creds_from_headers(ctx)
+        email, password = _get_credentials(ctx)
     except ValueError as e:
         return {"status": "error", "message": str(e)}
 
@@ -250,7 +267,7 @@ async def set_grid_delivery(ctx: Context, mode: int) -> dict:
     the 'X-OIG-Readonly-Access' header to 'false'.
     """
     try:
-        email, password = _get_creds_from_headers(ctx)
+        email, password = _get_credentials(ctx)
     except ValueError as e:
         return {"status": "error", "message": str(e)}
 

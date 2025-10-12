@@ -51,6 +51,79 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 
 The MCP endpoint is available at: **`http://localhost:8000/mcp`**
 
+### Authentication
+
+The server supports two methods for authenticating your OIG Cloud credentials.
+
+#### 1. Basic Authentication (Recommended)
+
+This is the standard and most compatible method. You provide your credentials in the `Authorization` header.
+
+**How to generate the token:**
+
+1. Take your email and password and join them with a single colon: `your_email@example.com:your_password`
+2. Base64-encode this string.
+   * **In Python:**
+     ```python
+     import base64
+     token = base64.b64encode(b'your_email@example.com:your_password').decode('utf-8')
+     print(token)
+     ```
+   * **On Linux/macOS command line:**
+     ```bash
+     echo -n 'your_email@example.com:your_password' | base64
+     ```
+3. The final header should look like this: `Authorization: Basic <your_encoded_token>`
+
+**Example with `curl`:**
+```bash
+curl -X POST http://localhost:8000/mcp \
+  -H "Authorization: Basic dGVzdEBleGFtcGxlLmNvbTp0ZXN0X3Bhc3N3b3Jk" \
+  -H "Content-Type: application/json" \
+  -d '{ ... tool call payload ... }'
+```
+
+#### 2. Custom Headers (Alternate option)
+
+The server also accepts credentials via two custom headers. This is an equally valid
+authentication option for clients that prefer header-based credentials.
+
+* `X-OIG-Email`: Your OIG Cloud email.
+* `X-OIG-Password`: Your OIG Cloud password.
+
+If both Basic Auth and custom headers are provided, the server will prioritize Basic Auth.
+
+##### Base64 encoding on Windows
+
+If you're on Windows, here are a few ways to Base64-encode the `email:password` string.
+
+PowerShell / PowerShell Core (pwsh):
+
+```powershell
+[Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes('your_email@example.com:your_password'))
+```
+
+Windows PowerShell (older versions using .NET API directly):
+
+```powershell
+[System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes('your_email@example.com:your_password'))
+```
+
+Command Prompt (cmd.exe) using PowerShell helper (works on most Windows machines):
+
+```cmd
+@echo off
+set "creds=your_email@example.com:your_password"
+powershell -NoProfile -Command "[Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes('%creds%'))"
+```
+
+Alternatively, on Windows Subsystem for Linux (WSL), Git Bash or Cygwin you can use the
+standard Linux command:
+
+```bash
+echo -n 'your_email@example.com:your_password' | base64
+```
+
 #### Using the Python MCP Client
 
 ```python
