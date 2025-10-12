@@ -106,6 +106,21 @@ def mock_context_write():
     return ctx
 
 
+@pytest.fixture
+def mock_context_basic_auth():
+    """Create a mock context with a valid Basic Auth header."""
+    ctx = Mock()
+    ctx.request_context = Mock()
+    ctx.request_context.request = Mock()
+    
+    # Base64 encode 'test@example.com:test_password'
+    token = "dGVzdEBleGFtcGxlLmNvbTp0ZXN0X3Bhc3N3b3Jk"
+    ctx.request_context.request.headers = {
+        "authorization": f"Basic {token}"
+    }
+    return ctx
+
+
 class TestGetBasicData:
     """Tests for get_basic_data tool."""
 
@@ -132,7 +147,7 @@ class TestGetBasicData:
         result = await get_basic_data(ctx)
 
         assert result["status"] == "error"
-        assert "Missing required authentication headers" in result["message"]
+        assert "Missing authentication" in result["message"]
 
     @pytest.mark.asyncio
     async def test_missing_password_header(self, mock_whitelist):
@@ -144,7 +159,7 @@ class TestGetBasicData:
         result = await get_basic_data(ctx)
 
         assert result["status"] == "error"
-        assert "Missing required authentication headers" in result["message"]
+        assert "Missing authentication" in result["message"]
 
     @pytest.mark.asyncio
     async def test_user_not_on_whitelist(self, mock_session_cache):
@@ -171,6 +186,39 @@ class TestGetBasicData:
 
         assert result["status"] == "error"
         assert "not on whitelist" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_success_with_basic_auth(
+        self, mock_context_basic_auth, mock_whitelist, mock_session_cache
+    ):
+        """Verify that authentication succeeds using the Authorization: Basic header."""
+        mock_cache, mock_client = mock_session_cache
+
+        result = await get_basic_data(mock_context_basic_auth)
+
+        assert result["status"] == "success"
+        mock_client.get_stats.assert_called_once()
+        # Verify the correct email was passed to the session cache
+        mock_cache.get_session_id.assert_called_with("test@example.com", "test_password")
+
+    @pytest.mark.asyncio
+    async def test_basic_auth_has_priority(
+        self, mock_context_basic_auth, mock_whitelist, mock_session_cache
+    ):
+        """Verify that Basic Auth is used even if custom headers are also present."""
+        mock_cache, mock_client = mock_session_cache
+
+        # Add conflicting custom headers to the Basic Auth context
+        mock_context_basic_auth.request_context.request.headers.update({
+            "x-oig-email": "wrong@example.com",
+            "x-oig-password": "wrong_password",
+        })
+
+        result = await get_basic_data(mock_context_basic_auth)
+
+        assert result["status"] == "success"
+        # Assert that the session cache was called with the credentials from Basic Auth, not the custom headers
+        mock_cache.get_session_id.assert_called_with("test@example.com", "test_password")
 
 
 class TestGetExtendedData:

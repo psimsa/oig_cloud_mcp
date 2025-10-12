@@ -51,6 +51,47 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 
 The MCP endpoint is available at: **`http://localhost:8000/mcp`**
 
+### Authentication
+
+The server supports two methods for authenticating your OIG Cloud credentials.
+
+#### 1. Basic Authentication (Recommended)
+
+This is the standard and most compatible method. You provide your credentials in the `Authorization` header.
+
+**How to generate the token:**
+
+1. Take your email and password and join them with a single colon: `your_email@example.com:your_password`
+2. Base64-encode this string.
+   * **In Python:**
+     ```python
+     import base64
+     token = base64.b64encode(b'your_email@example.com:your_password').decode('utf-8')
+     print(token)
+     ```
+   * **On Linux/macOS command line:**
+     ```bash
+     echo -n 'your_email@example.com:your_password' | base64
+     ```
+3. The final header should look like this: `Authorization: Basic <your_encoded_token>`
+
+**Example with `curl`:**
+```bash
+curl -X POST http://localhost:8000/mcp \
+  -H "Authorization: Basic dGVzdEBleGFtcGxlLmNvbTp0ZXN0X3Bhc3N3b3Jk" \
+  -H "Content-Type: application/json" \
+  -d '{ ... tool call payload ... }'
+```
+
+#### 2. Custom Headers (Legacy)
+
+For backward compatibility, the server also accepts credentials via two custom headers:
+
+* `X-OIG-Email`: Your OIG Cloud email.
+* `X-OIG-Password`: Your OIG Cloud password.
+
+If both Basic Auth and custom headers are provided, the server will prioritize Basic Auth.
+
 #### Using the Python MCP Client
 
 ```python
