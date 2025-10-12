@@ -38,6 +38,9 @@ class SessionCache:
                 def __init__(self, sample_path):
                     self._phpsessid = "mock-session"
                     self._sample_path = sample_path
+                    # Mock clients may be asked to report a box_id by the tools.
+                    # Initialize to None and populate when get_stats() is called.
+                    self.box_id = None
 
                 async def authenticate(self):
                     return True
@@ -56,6 +59,16 @@ class SessionCache:
 
                 async def get_notifications(self):
                     return []
+                
+                # Provide minimal implementations for write actions so that
+                # tools that call these methods in mock mode behave predictably.
+                async def set_box_mode(self, mode):
+                    # In the mock we simply accept the value and pretend it succeeded.
+                    return True
+
+                async def set_grid_delivery(self, mode):
+                    # Accept numeric flags (1/0) and pretend success.
+                    return True
 
             sample_path = os.path.join(os.path.dirname(__file__), "sample-response.json")
             return _MockClient(sample_path), "mock_session"

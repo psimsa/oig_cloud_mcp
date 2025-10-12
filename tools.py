@@ -33,6 +33,17 @@ def _get_creds_from_headers(ctx: Context) -> Tuple[str, str]:
     return email, password
 
 
+def _is_readonly(ctx: Context) -> bool:
+    """Checks if the client is in readonly mode. Defaults to True (safe)."""
+    request = ctx.request_context.request
+    if not request:
+        return True  # Default to readonly if context is missing
+
+    # Header value is a string 'true' or 'false'
+    readonly_header = request.headers.get("x-oig-readonly-access", "true")
+    return readonly_header.lower() != "false"
+
+
 @oig_tools.tool()
 async def get_basic_data(ctx: Context) -> dict:
     """Fetches a real-time snapshot of the PV system from the user's OIG Cloud account.
@@ -156,3 +167,79 @@ async def get_notifications(ctx: Context) -> dict:
         "session_id_preview": preview,
         "data": live_data,
     }
+
+
+@oig_tools.tool()
+async def set_box_mode(ctx: Context, mode: str) -> dict:
+    """
+    Sets the operating mode of the main control box (e.g., 'Home 1', 'Home 2').
+    This is a write operation and requires readonly access to be disabled by setting
+    the 'X-OIG-Readonly-Access' header to 'false'.
+    """
+    try:
+        email, password = _get_creds_from_headers(ctx)
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+
+    # Readonly safety check
+    if _is_readonly(ctx):
+        return {
+            "status": "error",
+            "message": "Action denied. Server is in readonly mode. Set 'X-OIG-Readonly-Access: false' header to allow actions.",
+        }
+
+    # Whitelist enforcement
+    if not whitelist.is_allowed(email):
+        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+
+    try:
+        client, status = await session_cache.get_session_id(email, password)
+        # The underlying API client needs the box_id, which is fetched during get_stats
+        if not getattr(client, "box_id", None):
+            await client.get_stats()
+
+        success = await client.set_box_mode(mode)
+        if success:
+            return {"status": "success", "message": f"Box mode successfully set to '{mode}'."}
+        else:
+            return {"status": "error", "message": "API call succeeded but failed to set box mode."}
+    except Exception as e:
+        return {"status": "error", "message": f"An error occurred while setting box mode: {e}"}
+
+
+@oig_tools.tool()
+async def set_grid_delivery(ctx: Context, mode: int) -> dict:
+    """
+    Sets the grid delivery mode (e.g., 1 for enabled, 0 for disabled).
+    This is a write operation and requires readonly access to be disabled by setting
+    the 'X-OIG-Readonly-Access' header to 'false'.
+    """
+    try:
+        email, password = _get_creds_from_headers(ctx)
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+
+    # Readonly safety check
+    if _is_readonly(ctx):
+        return {
+            "status": "error",
+            "message": "Action denied. Server is in readonly mode. Set 'X-OIG-Readonly-Access: false' header to allow actions.",
+        }
+
+    # Whitelist enforcement
+    if not whitelist.is_allowed(email):
+        return {"status": "error", "message": "Authorization denied: User not on whitelist."}
+
+    try:
+        client, status = await session_cache.get_session_id(email, password)
+        # The underlying API client needs the box_id, which is fetched during get_stats
+        if not getattr(client, "box_id", None):
+            await client.get_stats()
+
+        success = await client.set_grid_delivery(mode)
+        if success:
+            return {"status": "success", "message": f"Grid delivery mode successfully set to '{mode}'."}
+        else:
+            return {"status": "error", "message": "API call succeeded but failed to set grid delivery mode."}
+    except Exception as e:
+        return {"status": "error", "message": f"An error occurred while setting grid delivery mode: {e}"}
