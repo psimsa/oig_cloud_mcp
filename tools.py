@@ -17,7 +17,10 @@ def _get_credentials(ctx: Context) -> Tuple[str, str]:
         Tuple of (email, password)
 
     Raises:
-        ValueError: If credentials are not found or are malformed.
+        ValueError: If credentials are not found or are malformed. Note: some clients
+        send the token using an `Authorization: Bearer <token>` header even when
+        the token is a Base64-encoded `email:password` pair; this function accepts
+        either `Basic` or `Bearer` labels for compatibility.
     """
     request = ctx.request_context.request
     if not request:
@@ -25,16 +28,21 @@ def _get_credentials(ctx: Context) -> Tuple[str, str]:
 
     headers = request.headers
 
-    # Priority 1: Check for standard Authorization: Basic header
+    # Priority 1: Check for Authorization header. Accept either 'Basic' or 'Bearer'
+    # labels because some clients only allow a Bearer label even for basic-style
+    # Base64 tokens. We decode the token and expect it to contain 'email:password'.
     auth_header = headers.get("authorization")
-    if auth_header and auth_header.lower().startswith("basic "):
-        try:
-            token = auth_header.split(" ")[1]
-            decoded_creds = base64.b64decode(token).decode("utf-8")
-            email, password = decoded_creds.split(":", 1)
-            if email and password:
-                return email, password
-        except (IndexError, ValueError, base64.binascii.Error):
+    if auth_header:
+        scheme, _, token = auth_header.partition(" ")
+        if scheme and token and scheme.lower() in ("basic", "bearer"):
+            try:
+                decoded_creds = base64.b64decode(token).decode("utf-8")
+                email, password = decoded_creds.split(":", 1)
+                if email and password:
+                    return email, password
+            except (ValueError, base64.binascii.Error):
+                # Malformed token or split failure
+                raise ValueError("Malformed Authorization header; expected Base64-encoded 'email:password'.")
             raise ValueError("Malformed Basic authentication header.")
 
     # Priority 2: Fallback to custom X-OIG headers for backward compatibility
