@@ -9,7 +9,7 @@ Public API
     structured mapping defined in data_mapping_spec.md.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 
 def _create_data_point(value: Any, unit: str, description: str) -> Dict[str, Any]:
@@ -18,6 +18,7 @@ def _create_data_point(value: Any, unit: str, description: str) -> Dict[str, Any
     - Coerces numeric values into either int (for percentage) or float.
     - Rounds floating-point kW values to 3 decimal places for readability.
     """
+    v: Union[int, float]
     if value is None:
         if unit == "%":
             v = 0
@@ -138,7 +139,7 @@ def transform_get_stats(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         return {}
 
     # The API response is keyed by device id. Use the first device object.
-    device_obj = next(iter(raw_data.values()), {})
+    device_obj: Dict[str, Any] = next(iter(raw_data.values()), {})
     if not device_obj:
         return {}
 

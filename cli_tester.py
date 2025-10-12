@@ -27,7 +27,7 @@ from mcp.client.streamable_http import streamablehttp_client
 
 async def call_tool(
     server_url: str, tool_name: str, arguments: Dict[str, Any], headers: Dict[str, str]
-):
+) -> None:
     async with streamablehttp_client(server_url, headers=headers) as (
         read_stream,
         write_stream,
@@ -79,7 +79,7 @@ def build_arguments(ns: argparse.Namespace) -> Dict[str, Any]:
     return args
 
 
-async def main():
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Call OIG Cloud MCP tools from the command line"
     )

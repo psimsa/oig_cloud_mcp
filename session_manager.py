@@ -35,38 +35,41 @@ class SessionCache:
             # Minimal mock client used only for testing. It provides the
             # attributes and coroutines the tools expect.
             class _MockClient:
-                def __init__(self, sample_path):
-                    self._phpsessid = "mock-session"
-                    self._sample_path = sample_path
+                def __init__(self, sample_path: str) -> None:
+                    self._phpsessid: str = "mock-session"
+                    self._sample_path: str = sample_path
                     # Mock clients may be asked to report a box_id by the tools.
                     # Initialize to None and populate when get_stats() is called.
-                    self.box_id = None
+                    self.box_id: None = None
 
-                async def authenticate(self):
+                async def authenticate(self) -> bool:
                     return True
 
-                async def get_stats(self):
+                async def get_stats(self) -> Dict[str, Any]:
                     import json
                     from pathlib import Path
 
                     p = Path(self._sample_path)
                     if p.exists():
-                        return json.loads(p.read_text())
+                        data: Dict[str, Any] = json.loads(p.read_text())
+                        return data
                     return {}
 
-                async def get_extended_stats(self, name, start_date, end_date):
+                async def get_extended_stats(
+                    self, name: str, start_date: str, end_date: str
+                ) -> Dict[str, Any]:
                     return {}
 
-                async def get_notifications(self):
+                async def get_notifications(self) -> list:
                     return []
 
                 # Provide minimal implementations for write actions so that
                 # tools that call these methods in mock mode behave predictably.
-                async def set_box_mode(self, mode):
+                async def set_box_mode(self, mode: str) -> bool:
                     # In the mock we simply accept the value and pretend it succeeded.
                     return True
 
-                async def set_grid_delivery(self, mode):
+                async def set_grid_delivery(self, mode: int) -> bool:
                     # Accept numeric flags (1/0) and pretend success.
                     return True
 
