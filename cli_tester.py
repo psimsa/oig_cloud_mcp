@@ -143,11 +143,12 @@ async def main():
 
     ns = parser.parse_args()
     arguments = build_arguments(ns)
-    
+
     headers = {}
     if ns.auth_mode == "basic":
         print("Using Basic Authentication.")
         import base64
+
         creds = f"{ns.email}:{ns.password}"
         token = base64.b64encode(creds.encode()).decode()
         headers["Authorization"] = f"Basic {token}"

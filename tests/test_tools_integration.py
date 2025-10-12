@@ -112,12 +112,10 @@ def mock_context_basic_auth():
     ctx = Mock()
     ctx.request_context = Mock()
     ctx.request_context.request = Mock()
-    
+
     # Base64 encode 'test@example.com:test_password'
     token = "dGVzdEBleGFtcGxlLmNvbTp0ZXN0X3Bhc3N3b3Jk"
-    ctx.request_context.request.headers = {
-        "authorization": f"Basic {token}"
-    }
+    ctx.request_context.request.headers = {"authorization": f"Basic {token}"}
     return ctx
 
 
@@ -199,7 +197,9 @@ class TestGetBasicData:
         assert result["status"] == "success"
         mock_client.get_stats.assert_called_once()
         # Verify the correct email was passed to the session cache
-        mock_cache.get_session_id.assert_called_with("test@example.com", "test_password")
+        mock_cache.get_session_id.assert_called_with(
+            "test@example.com", "test_password"
+        )
 
     @pytest.mark.asyncio
     async def test_basic_auth_has_priority(
@@ -209,16 +209,20 @@ class TestGetBasicData:
         mock_cache, mock_client = mock_session_cache
 
         # Add conflicting custom headers to the Basic Auth context
-        mock_context_basic_auth.request_context.request.headers.update({
-            "x-oig-email": "wrong@example.com",
-            "x-oig-password": "wrong_password",
-        })
+        mock_context_basic_auth.request_context.request.headers.update(
+            {
+                "x-oig-email": "wrong@example.com",
+                "x-oig-password": "wrong_password",
+            }
+        )
 
         result = await get_basic_data(mock_context_basic_auth)
 
         assert result["status"] == "success"
         # Assert that the session cache was called with the credentials from Basic Auth, not the custom headers
-        mock_cache.get_session_id.assert_called_with("test@example.com", "test_password")
+        mock_cache.get_session_id.assert_called_with(
+            "test@example.com", "test_password"
+        )
 
 
 class TestGetExtendedData:

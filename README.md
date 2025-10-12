@@ -83,14 +83,46 @@ curl -X POST http://localhost:8000/mcp \
   -d '{ ... tool call payload ... }'
 ```
 
-#### 2. Custom Headers (Legacy)
+#### 2. Custom Headers (Alternate option)
 
-For backward compatibility, the server also accepts credentials via two custom headers:
+The server also accepts credentials via two custom headers. This is an equally valid
+authentication option for clients that prefer header-based credentials.
 
 * `X-OIG-Email`: Your OIG Cloud email.
 * `X-OIG-Password`: Your OIG Cloud password.
 
 If both Basic Auth and custom headers are provided, the server will prioritize Basic Auth.
+
+##### Base64 encoding on Windows
+
+If you're on Windows, here are a few ways to Base64-encode the `email:password` string.
+
+PowerShell / PowerShell Core (pwsh):
+
+```powershell
+[Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes('your_email@example.com:your_password'))
+```
+
+Windows PowerShell (older versions using .NET API directly):
+
+```powershell
+[System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes('your_email@example.com:your_password'))
+```
+
+Command Prompt (cmd.exe) using PowerShell helper (works on most Windows machines):
+
+```cmd
+@echo off
+set "creds=your_email@example.com:your_password"
+powershell -NoProfile -Command "[Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes('%creds%'))"
+```
+
+Alternatively, on Windows Subsystem for Linux (WSL), Git Bash or Cygwin you can use the
+standard Linux command:
+
+```bash
+echo -n 'your_email@example.com:your_password' | base64
+```
 
 #### Using the Python MCP Client
 
