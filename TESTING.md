@@ -126,6 +126,34 @@ black --check .
 black .
 ```
 
+### Type Checking with mypy
+
+The project enforces type hints throughout the codebase to ensure type safety and better code documentation.
+
+```bash
+# Check all main modules
+mypy --config-file=mypy.ini tools.py security.py session_manager.py transformer.py main.py cli_tester.py
+
+# Or check a specific file
+mypy --config-file=mypy.ini tools.py
+```
+
+#### Type Checking Configuration
+
+The project uses `mypy.ini` for configuration with the following settings:
+- Python version: 3.13
+- `disallow_untyped_defs`: Enforces type hints on all functions
+- `check_untyped_defs`: Checks function bodies even without annotations
+- `ignore_missing_imports`: Ignores imports from external libraries without type stubs
+- Test files are excluded from strict type checking requirements
+
+All function signatures include type hints for:
+- Parameters
+- Return types
+- Local variables (where necessary to resolve type inference issues)
+black .
+```
+
 ## CI/CD Pipeline
 
 The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that automatically:
@@ -135,7 +163,8 @@ The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that
 3. Installs all dependencies
 4. Runs flake8 linting checks
 5. Validates code formatting with black
-6. Executes the full pytest suite
+6. Performs type checking with mypy
+7. Executes the full pytest suite
 
 ### Workflow Configuration
 
