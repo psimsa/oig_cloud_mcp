@@ -81,3 +81,5 @@ jobs:
         push: true
         platforms: linux/amd64,linux/arm64
         tags: ${{ steps.set-tags.outputs.image_tags }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
