@@ -28,6 +28,14 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
 
+    - name: Build Docker image (build only, no push)
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: Dockerfile
+        push: false
+        tags: oig_cloud_mcp:ci-${{ github.run_id }}
+
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
