@@ -40,7 +40,7 @@ The GitHub Actions workflow runs automatically on:
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop` branches
 
-Tests against: Python 3.12 and 3.13
+Tests against: Python 3.13
 
 ## Project Structure
 ```

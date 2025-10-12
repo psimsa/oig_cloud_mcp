@@ -222,7 +222,7 @@ For detailed testing documentation, see [TESTING.md](TESTING.md).
 
 - **Unit Tests**: Pure functions in `transformer.py` and `security.py`
 - **Integration Tests**: Tool endpoints with mocked API calls
-- **CI/CD**: Automated testing on GitHub Actions for Python 3.12 and 3.13
+- **CI/CD**: Automated testing on GitHub Actions for Python 3.13
 
 ## Troubleshooting
 
