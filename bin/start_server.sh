@@ -2,7 +2,7 @@
 # Start the OIG Cloud MCP Server
 
 # Get the directory where this script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
 # Activate virtual environment if it exists
 if [ -d "$SCRIPT_DIR/.venv" ]; then
@@ -16,4 +16,4 @@ fi
 # Start the server
 echo "Starting OIG Cloud MCP Server..."
 cd "$SCRIPT_DIR"
-$PYTHON main.py
+$PYTHON bin/main.py

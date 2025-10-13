@@ -6,11 +6,13 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy only the requirements file to leverage Docker cache
-COPY requirements.txt .
+# Copy requirements and setup files
+COPY requirements.txt setup.py ./
+COPY src/ ./src/
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies and the package
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -e .
 
 # Stage 2: Final Image - Setup the application
 FROM python:3.13-slim-bookworm
@@ -36,4 +38,4 @@ USER appuser
 EXPOSE 8000
 
 # Command to run the application
-CMD ["python", "main.py"]
+CMD ["python", "bin/main.py"]
