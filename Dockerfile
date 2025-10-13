@@ -12,7 +12,7 @@ COPY src/ ./src/
 
 # Install dependencies and the package
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -e .
+    pip install --no-cache-dir .
 
 # Stage 2: Final Image - Setup the application
 FROM python:3.13-slim-bookworm
@@ -25,8 +25,9 @@ WORKDIR /home/appuser/app
 COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application source code
-COPY . .
+# Copy application scripts and runtime files
+COPY bin/ ./bin/
+COPY whitelist.txt .
 
 # Change ownership of the app directory
 RUN chown -R appuser:appuser /home/appuser

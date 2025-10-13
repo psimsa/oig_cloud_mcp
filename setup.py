@@ -9,8 +9,8 @@ setup(
     packages=find_packages(where="src"),
     python_requires=">=3.13",
     install_requires=[
-        "fastmcp>=0.1.0",
-        "httpx>=0.27.0",
         "mcp>=1.3.2",
+        "httpx>=0.27.0",
+        "oig-cloud-client @ git+https://github.com/psimsa/oig_cloud_client.git",
     ],
 )
