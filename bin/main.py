@@ -1,4 +1,4 @@
-from tools import oig_tools
+from oig_cloud_mcp.tools import oig_tools
 
 if __name__ == "__main__":
     # Configure host and port for the tools-driven FastMCP instance

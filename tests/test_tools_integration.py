@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import Mock, AsyncMock
-from tools import (
+from oig_cloud_mcp.tools import (
     get_basic_data,
     get_extended_data,
     get_notifications,
@@ -20,7 +20,7 @@ def mock_whitelist(mocker):
         f.write("admin@example.com\n")
         f.flush()
 
-        mock_wl = mocker.patch("tools.whitelist")
+        mock_wl = mocker.patch("oig_cloud_mcp.tools.whitelist")
         mock_wl.is_allowed.side_effect = lambda email: email.lower() in [
             "test@example.com",
             "admin@example.com",
@@ -31,7 +31,7 @@ def mock_whitelist(mocker):
 @pytest.fixture
 def mock_rate_limiter(mocker):
     """Mock the rate limiter to allow all requests."""
-    mock_rl = mocker.patch("tools.RateLimitException", Exception)
+    mock_rl = mocker.patch("oig_cloud_mcp.tools.RateLimitException", Exception)
     return mock_rl
 
 
@@ -59,7 +59,7 @@ def mock_session_cache(mocker):
     mock_client._phpsessid = "test_session_id_12345"
     mock_client.box_id = "test_box_id"
 
-    mock_cache = mocker.patch("tools.session_cache")
+    mock_cache = mocker.patch("oig_cloud_mcp.tools.session_cache")
     mock_cache.get_session_id = AsyncMock(return_value=(mock_client, "cached"))
 
     return mock_cache, mock_client
@@ -171,7 +171,7 @@ class TestGetBasicData:
             "x-oig-password": "test_password",
         }
 
-        import tools
+        import oig_cloud_mcp.tools as tools
 
         original_whitelist = tools.whitelist
         mock_wl = Mock()

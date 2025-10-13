@@ -160,9 +160,9 @@ if __name__ == "__main__":
     import json
     import pathlib
 
-    sample = pathlib.Path(__file__).parent / "sample-response.json"
+    sample = pathlib.Path(__file__).parent.parent.parent / "tests" / "fixtures" / "sample-response.json"
     if sample.exists():
         data = json.loads(sample.read_text())
         print(json.dumps(transform_get_stats(data), indent=2))
     else:
-        print("No sample-response.json found in project root for quick test.")
+        print("No sample-response.json found in tests/fixtures/ for quick test.")

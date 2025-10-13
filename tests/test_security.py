@@ -3,7 +3,7 @@
 import tempfile
 import pytest
 import asyncio
-from security import Whitelist, RateLimiter, RateLimitException
+from oig_cloud_mcp.security import Whitelist, RateLimiter, RateLimitException
 
 
 class TestWhitelist:
