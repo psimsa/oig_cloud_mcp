@@ -160,7 +160,12 @@ if __name__ == "__main__":
     import json
     import pathlib
 
-    sample = pathlib.Path(__file__).parent.parent.parent / "tests" / "fixtures" / "sample-response.json"
+    sample = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "tests"
+        / "fixtures"
+        / "sample-response.json"
+    )
     if sample.exists():
         data = json.loads(sample.read_text())
         print(json.dumps(transform_get_stats(data), indent=2))

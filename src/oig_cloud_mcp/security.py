@@ -18,9 +18,7 @@ class Whitelist:
     def __init__(self, path: Optional[str] = None):
         if path is None:
             # Look for whitelist.txt in the project root (3 levels up from this file)
-            path = os.path.join(
-                os.path.dirname(__file__), "..", "..", "whitelist.txt"
-            )
+            path = os.path.join(os.path.dirname(__file__), "..", "..", "whitelist.txt")
         self.path = os.path.abspath(path)
         self._emails: Set[str] = set()
         self._load()

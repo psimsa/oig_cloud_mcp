@@ -71,7 +71,12 @@ class SessionCache:
                     return True
 
             sample_path = os.path.join(
-                os.path.dirname(__file__), "..", "..", "tests", "fixtures", "sample-response.json"
+                os.path.dirname(__file__),
+                "..",
+                "..",
+                "tests",
+                "fixtures",
+                "sample-response.json",
             )
             return _MockClient(sample_path), "mock_session"
 
