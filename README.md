@@ -10,9 +10,10 @@ This server implements the Model Context Protocol using FastMCP from the officia
 
 ```bash
 pip install -r requirements.txt
+pip install -e .
 ```
 
-Before running any Python command-line tools (for example `cli_tester.py`), ensure the project's virtual environment is activated:
+Before running any Python command-line tools (for example `bin/cli_tester.py`), ensure the project's virtual environment is activated:
 
 ```bash
 source .venv/bin/activate
@@ -25,13 +26,13 @@ source .venv/bin/activate
 Run the server:
 
 ```bash
-python main.py
+python bin/main.py
 ```
 
 Or use the provided startup script:
 
 ```bash
-./start_server.sh
+./bin/start_server.sh
 ```
 
 The server will start on `http://0.0.0.0:8000` using the StreamableHTTP transport.
@@ -177,11 +178,11 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-A command-line tester is provided in `cli_tester.py`. Examples:
+A command-line tester is provided in `bin/cli_tester.py`. Examples:
 
 ```bash
-python cli_tester.py get_basic_data
-python cli_tester.py get_extended_data --start-date 2025-01-01 --end-date 2025-01-31
+python bin/cli_tester.py get_basic_data
+python bin/cli_tester.py get_extended_data --start-date 2025-01-01 --end-date 2025-01-31
 ```
 
 #### Using Claude Desktop
@@ -251,22 +252,36 @@ Redis so lockouts persist across processes and machines.
 
 ## Architecture
 
-- **tools.py**: MCP tool definitions (`get_basic_data`, `get_extended_data`, `get_notifications`)
-- **main.py**: Server runner that imports `oig_tools` and starts the FastMCP server
-- **session_manager.py**: Session caching and OIG Cloud API authentication
-- **cli_tester.py**: Command-line test client for invoking the MCP tools
-- **requirements.txt**: Dependencies including `mcp` SDK
+```
+oig_cloud_mcp/
+├── bin/                    # Executable scripts
+│   ├── main.py            # Server runner
+│   ├── cli_tester.py      # Command-line test client
+│   └── start_server.sh    # Startup script
+├── src/oig_cloud_mcp/     # Python package
+│   ├── __init__.py        # Package metadata
+│   ├── tools.py           # MCP tool definitions
+│   ├── session_manager.py # Session caching and API auth
+│   ├── security.py        # Whitelist and rate limiting
+│   └── transformer.py     # Data transformation utilities
+├── tests/                 # Test suite
+│   ├── fixtures/          # Test data
+│   └── test_*.py          # Unit and integration tests
+├── docs/                  # Documentation
+├── requirements.txt       # Dependencies
+└── setup.py              # Package configuration
+```
 
 ## Configuration
 
-Server settings can be modified in `main.py`:
+Server settings can be modified in `bin/main.py`:
 
 ```python
 oig_tools.settings.host = "0.0.0.0"  # Listen address
 oig_tools.settings.port = 8000       # Listen port
 ```
 
-Session cache eviction time can be configured in `session_manager.py`:
+Session cache eviction time can be configured in `src/oig_cloud_mcp/session_manager.py`:
 
 ```python
 session_cache = SessionCache(eviction_time_seconds=43200)  # 12 hours
@@ -301,7 +316,7 @@ flake8 .
 black --check .
 ```
 
-For detailed testing documentation, see [TESTING.md](TESTING.md).
+For detailed testing documentation, see [docs/testing.md](docs/testing.md).
 
 #### Test Coverage
 
