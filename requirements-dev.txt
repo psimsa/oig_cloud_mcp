@@ -49,5 +49,3 @@ pytest-asyncio
 pytest-mock
 black
 flake8
-
-pre-commit

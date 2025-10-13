@@ -26,7 +26,9 @@ class Whitelist:
                 path = cwd_path
             else:
                 # Fall back to project root (local development)
-                path = os.path.join(os.path.dirname(__file__), "..", "..", "whitelist.txt")
+                path = os.path.join(
+                    os.path.dirname(__file__), "..", "..", "whitelist.txt"
+                )
         self.path = os.path.abspath(path)
         self._emails: Set[str] = set()
         self._load()
@@ -41,7 +43,9 @@ class Whitelist:
                     self._emails.add(line.lower())
         except FileNotFoundError:
             # If the whitelist file is missing, treat as empty (no users allowed)
-            print(f"Warning: whitelist file not found at '{self.path}'. No users are permitted until this file is created.")
+            print(
+                f"Warning: whitelist file not found at '{self.path}'. No users are permitted until this file is created."
+            )
         except Exception as e:
             print(f"Error loading whitelist from '{self.path}': {e}")
 
@@ -85,7 +89,9 @@ class RateLimiter:
             lockout_until = state.get("lockout_until", 0)
             if lockout_until > now:
                 remaining = int(lockout_until - now)
-                raise RateLimitException(f"Too many failed authentication attempts. Try again in {remaining} seconds.")
+                raise RateLimitException(
+                    f"Too many failed authentication attempts. Try again in {remaining} seconds."
+                )
 
     async def record_success(self, email: str) -> None:
         """Reset the failure counter for a successful authentication."""
@@ -95,14 +101,18 @@ class RateLimiter:
     async def record_failure(self, email: str) -> None:
         """Register a failed authentication attempt and apply lockout if needed."""
         async with self._lock:
-            state = self._user_state.setdefault(email, {"failed_attempts": 0, "lockout_until": 0.0})
+            state = self._user_state.setdefault(
+                email, {"failed_attempts": 0, "lockout_until": 0.0}
+            )
             state["failed_attempts"] = int(state.get("failed_attempts", 0)) + 1
             failures = state["failed_attempts"]
             if failures >= self.MAX_FAILURES:
                 exponent = failures - self.MAX_FAILURES
                 lockout = min(self.INITIAL_LOCKOUT * (2**exponent), self.MAX_LOCKOUT)
                 state["lockout_until"] = time.time() + lockout
-                print(f"User '{email}' locked out for {int(lockout)} seconds after {failures} failures.")
+                print(
+                    f"User '{email}' locked out for {int(lockout)} seconds after {failures} failures."
+                )
 
 
 # Module-level shared instances
