@@ -55,7 +55,8 @@ def _get_credentials(ctx: Context) -> Tuple[str, str]:
 
     # If neither method provides credentials, fail
     raise ValueError(
-        "Missing authentication. Provide credentials via 'Authorization: Basic' header or 'X-OIG-Email'/'X-OIG-Password' headers."
+        "Missing authentication. Provide credentials via 'Authorization: Basic' header "
+        "or 'X-OIG-Email'/'X-OIG-Password' headers."
     )
 
 
