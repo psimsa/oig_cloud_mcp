@@ -6,6 +6,10 @@ from typing import Tuple
 import base64
 import binascii
 
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
+
 # Create a tools instance
 oig_tools = FastMCP("OIG Cloud Tools")
 
@@ -23,42 +27,45 @@ def _get_credentials(ctx: Context) -> Tuple[str, str]:
         the token is a Base64-encoded `email:password` pair; this function accepts
         either `Basic` or `Bearer` labels for compatibility.
     """
-    request = ctx.request_context.request
-    if not request:
-        raise ValueError("Request context not available")
+    with tracer.start_as_current_span("get_credentials") as span:
+        request = ctx.request_context.request
+        if not request:
+            raise ValueError("Request context not available")
 
-    headers = request.headers
+        headers = request.headers
 
-    # Priority 1: Check for Authorization header. Accept either 'Basic' or 'Bearer'
-    # labels because some clients only allow a Bearer label even for basic-style
-    # Base64 tokens. We decode the token and expect it to contain 'email:password'.
-    auth_header = headers.get("authorization")
-    if auth_header:
-        scheme, _, token = auth_header.partition(" ")
-        if scheme and token and scheme.lower() in ("basic", "bearer"):
-            try:
-                decoded_creds = base64.b64decode(token).decode("utf-8")
-                email, password = decoded_creds.split(":", 1)
-                if email and password:
-                    return email, password
-            except (ValueError, binascii.Error):
-                # Malformed token or split failure
-                raise ValueError(
-                    "Malformed Authorization header; expected Base64-encoded 'email:password'."
-                )
+        # Priority 1: Check for Authorization header. Accept either 'Basic' or 'Bearer'
+        # labels because some clients only allow a Bearer label even for basic-style
+        # Base64 tokens. We decode the token and expect it to contain 'email:password'.
+        auth_header = headers.get("authorization")
+        if auth_header:
+            scheme, _, token = auth_header.partition(" ")
+            if scheme and token and scheme.lower() in ("basic", "bearer"):
+                try:
+                    decoded_creds = base64.b64decode(token).decode("utf-8")
+                    email, password = decoded_creds.split(":", 1)
+                    if email and password:
+                        span.set_attribute("auth.method", "basic")
+                        return email, password
+                except (ValueError, binascii.Error):
+                    # Malformed token or split failure
+                    raise ValueError(
+                        "Malformed Authorization header; expected Base64-encoded 'email:password'."
+                    )
             raise ValueError("Malformed Basic authentication header.")
 
-    # Priority 2: Fallback to custom X-OIG headers for backward compatibility
-    email = headers.get("x-oig-email")
-    password = headers.get("x-oig-password")
-    if email and password:
-        return email, password
+        # Priority 2: Fallback to custom X-OIG headers for backward compatibility
+        email = headers.get("x-oig-email")
+        password = headers.get("x-oig-password")
+        if email and password:
+            span.set_attribute("auth.method", "header")
+            return email, password
 
-    # If neither method provides credentials, fail
-    raise ValueError(
-        "Missing authentication. Provide credentials via 'Authorization: Basic' header "
-        "or 'X-OIG-Email'/'X-OIG-Password' headers."
-    )
+        # If neither method provides credentials, fail
+        raise ValueError(
+            "Missing authentication. Provide credentials via 'Authorization: Basic' header "
+            "or 'X-OIG-Email'/'X-OIG-Password' headers."
+        )
 
 
 def _is_readonly(ctx: Context) -> bool:
@@ -93,7 +100,9 @@ async def get_basic_data(ctx: Context) -> dict:
         }
 
     try:
-        client, status = await session_cache.get_session_id(email, password)
+        request = ctx.request_context.request
+        client_ip = request.client.host if request and request.client else "unknown"
+        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
     except RateLimitException as e:
         return {"status": "error", "message": str(e)}
     except ConnectionError:
@@ -147,7 +156,9 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
         }
 
     try:
-        client, status = await session_cache.get_session_id(email, password)
+        request = ctx.request_context.request
+        client_ip = request.client.host if request and request.client else "unknown"
+        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
     except RateLimitException as e:
         return {"status": "error", "message": str(e)}
     except ConnectionError:
@@ -193,7 +204,9 @@ async def get_notifications(ctx: Context) -> dict:
         }
 
     try:
-        client, status = await session_cache.get_session_id(email, password)
+        request = ctx.request_context.request
+        client_ip = request.client.host if request and request.client else "unknown"
+        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
     except RateLimitException as e:
         return {"status": "error", "message": str(e)}
     except ConnectionError:
@@ -248,7 +261,9 @@ async def set_box_mode(ctx: Context, mode: str) -> dict:
         }
 
     try:
-        client, status = await session_cache.get_session_id(email, password)
+        request = ctx.request_context.request
+        client_ip = request.client.host if request and request.client else "unknown"
+        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
         # The underlying API client needs the box_id, which is fetched during get_stats
         if not getattr(client, "box_id", None):
             await client.get_stats()
@@ -301,7 +316,9 @@ async def set_grid_delivery(ctx: Context, mode: int) -> dict:
         }
 
     try:
-        client, status = await session_cache.get_session_id(email, password)
+        request = ctx.request_context.request
+        client_ip = request.client.host if request and request.client else "unknown"
+        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
         # The underlying API client needs the box_id, which is fetched during get_stats
         if not getattr(client, "box_id", None):
             await client.get_stats()

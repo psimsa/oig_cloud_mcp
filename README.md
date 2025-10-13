@@ -287,6 +287,32 @@ Session cache eviction time can be configured in `src/oig_cloud_mcp/session_mana
 session_cache = SessionCache(eviction_time_seconds=43200)  # 12 hours
 ```
 
+## Observability
+
+This server supports comprehensive observability through OpenTelemetry (OTel) and provides a dedicated log for security monitoring with tools like `fail2ban`.
+
+### OpenTelemetry (Traces & Logs)
+
+To enable OTel, configure the following environment variables:
+
+* `OTEL_EXPORTER_OTLP_ENDPOINT`: The full URL to your OTel collector's gRPC or HTTP endpoint (e.g., `http://localhost:4317` for gRPC or `http://localhost:4318/v1/logs` for HTTP).
+* `OTEL_EXPORTER_OTLP_PROTOCOL`: Set to `grpc` (default) or `http/protobuf` to choose the export protocol.
+* `OTEL_SERVICE_NAME`: A name for this service (defaults to `oig-cloud-mcp`).
+
+If `OTEL_EXPORTER_OTLP_ENDPOINT` is not set, OTel will be disabled.
+
+### Security Logging for Fail2ban
+
+The server writes all failed authentication attempts to a dedicated log file, suitable for monitoring with `fail2ban`.
+
+* **Log Path:** The default location is `/var/log/oig_mcp_auth.log`. This can be changed by setting the `FAIL2BAN_LOG_PATH` environment variable.
+* **Log Format:**
+    ```
+    YYYY-MM-DD HH:MM:SS: oig-mcp-auth: FAILED for user [user@email.com] from IP [123.45.67.89]
+    ```
+
+When running in Docker, you should mount a volume to this path to persist the log on the host machine.
+
 ## Development
 
 The server uses:
