@@ -14,7 +14,7 @@ class Whitelist:
     The whitelist file is expected to be named `whitelist.txt` and can be in:
     1. The current working directory (for Docker/production)
     2. The project root (for local development - 3 levels up from this file)
-    
+
     Lines beginning with `#` or empty lines are ignored.
     """
 
