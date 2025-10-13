@@ -205,7 +205,9 @@ class TestGetBasicData:
         assert result["status"] == "success"
         mock_client.get_stats.assert_called_once()
         # Verify the correct email was passed to the session cache
-        mock_cache.get_session_id.assert_called_with("test@example.com", "test_password", client_ip="unknown")
+        mock_cache.get_session_id.assert_called_with(
+            "test@example.com", "test_password", client_ip="unknown"
+        )
 
     @pytest.mark.asyncio
     async def test_basic_auth_has_priority(
@@ -226,7 +228,9 @@ class TestGetBasicData:
 
         assert result["status"] == "success"
         # Assert that the session cache was called with the credentials from Basic Auth, not the custom headers
-        mock_cache.get_session_id.assert_called_with("test@example.com", "test_password", client_ip="unknown")
+        mock_cache.get_session_id.assert_called_with(
+            "test@example.com", "test_password", client_ip="unknown"
+        )
 
 
 class TestGetExtendedData:

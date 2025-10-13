@@ -26,7 +26,9 @@ class SessionCache:
         """Creates a secure hash key from credentials."""
         return hashlib.sha256(f"{email}:{password}".encode()).hexdigest()
 
-    async def get_session_id(self, email: str, password: str, client_ip: str = "unknown") -> Tuple[Any, str]:
+    async def get_session_id(
+        self, email: str, password: str, client_ip: str = "unknown"
+    ) -> Tuple[Any, str]:
         """
         Get a valid, authenticated OigCloudApi client, authenticating if necessary.
         Returns a tuple of (client, status), where status is
@@ -131,7 +133,9 @@ class SessionCache:
                     return client, "new_session_created"
                 else:
                     # Log failure for fail2ban
-                    logging.getLogger(FAIL2BAN_LOGGER_NAME).warning(f"FAILED for user [{email}] from IP [{client_ip}]")
+                    logging.getLogger(FAIL2BAN_LOGGER_NAME).warning(
+                        f"FAILED for user [{email}] from IP [{client_ip}]"
+                    )
                     await rate_limiter.record_failure(email)
                     raise ConnectionError("Failed to authenticate with OIG Cloud.")
             except RateLimitException:
@@ -139,7 +143,9 @@ class SessionCache:
                 raise
             except Exception as e:
                 # Log failure for fail2ban
-                logging.getLogger(FAIL2BAN_LOGGER_NAME).warning(f"FAILED for user [{email}] from IP [{client_ip}]")
+                logging.getLogger(FAIL2BAN_LOGGER_NAME).warning(
+                    f"FAILED for user [{email}] from IP [{client_ip}]"
+                )
                 # Any unexpected errors during authentication are treated as connection errors
                 await rate_limiter.record_failure(email)
                 logging.error(f"Authentication error for '{email}': {e}")

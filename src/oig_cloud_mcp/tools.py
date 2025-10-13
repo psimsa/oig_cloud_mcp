@@ -102,7 +102,9 @@ async def get_basic_data(ctx: Context) -> dict:
     try:
         request = ctx.request_context.request
         client_ip = request.client.host if request and request.client else "unknown"
-        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
+        client, status = await session_cache.get_session_id(
+            email, password, client_ip=client_ip
+        )
     except RateLimitException as e:
         return {"status": "error", "message": str(e)}
     except ConnectionError:
@@ -158,7 +160,9 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
     try:
         request = ctx.request_context.request
         client_ip = request.client.host if request and request.client else "unknown"
-        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
+        client, status = await session_cache.get_session_id(
+            email, password, client_ip=client_ip
+        )
     except RateLimitException as e:
         return {"status": "error", "message": str(e)}
     except ConnectionError:
@@ -206,7 +210,9 @@ async def get_notifications(ctx: Context) -> dict:
     try:
         request = ctx.request_context.request
         client_ip = request.client.host if request and request.client else "unknown"
-        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
+        client, status = await session_cache.get_session_id(
+            email, password, client_ip=client_ip
+        )
     except RateLimitException as e:
         return {"status": "error", "message": str(e)}
     except ConnectionError:
@@ -263,7 +269,9 @@ async def set_box_mode(ctx: Context, mode: str) -> dict:
     try:
         request = ctx.request_context.request
         client_ip = request.client.host if request and request.client else "unknown"
-        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
+        client, status = await session_cache.get_session_id(
+            email, password, client_ip=client_ip
+        )
         # The underlying API client needs the box_id, which is fetched during get_stats
         if not getattr(client, "box_id", None):
             await client.get_stats()
@@ -318,7 +326,9 @@ async def set_grid_delivery(ctx: Context, mode: int) -> dict:
     try:
         request = ctx.request_context.request
         client_ip = request.client.host if request and request.client else "unknown"
-        client, status = await session_cache.get_session_id(email, password, client_ip=client_ip)
+        client, status = await session_cache.get_session_id(
+            email, password, client_ip=client_ip
+        )
         # The underlying API client needs the box_id, which is fetched during get_stats
         if not getattr(client, "box_id", None):
             await client.get_stats()
