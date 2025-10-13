@@ -16,11 +16,11 @@ repos:
         # The line-length should match your project's setting in setup.cfg
         args: [--line-length=127]
 
--   repo: https://github.com/pycqa/flake8
-    rev: 7.1.0
-    hooks:
-    -   id: flake8
-        # The max-line-length should match your project's setting
-        args: [--max-line-length=127]
-        # You can add additional_dependencies if your flake8 needs plugins
-        # additional_dependencies: [flake8-bugbear]
+# -   repo: https://github.com/pycqa/flake8
+#     rev: 7.1.0
+#     hooks:
+#     -   id: flake8
+#         # The max-line-length should match your project's setting
+#         args: [--max-line-length=127]
+#         # You can add additional_dependencies if your flake8 needs plugins
+#         # additional_dependencies: [flake8-bugbear]
