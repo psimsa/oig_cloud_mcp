@@ -2,7 +2,7 @@
 
 import json
 import pathlib
-from transformer import (
+from oig_cloud_mcp.transformer import (
     transform_get_stats,
     _create_data_point,
     _transform_solar,
@@ -110,7 +110,9 @@ class TestTransformGetStats:
     """Tests for the main transform_get_stats function."""
 
     def test_with_complete_sample_response(self):
-        sample_path = pathlib.Path(__file__).parent.parent / "sample-response.json"
+        sample_path = (
+            pathlib.Path(__file__).parent / "fixtures" / "sample-response.json"
+        )
         with open(sample_path, "r") as f:
             sample_data = json.load(f)
 

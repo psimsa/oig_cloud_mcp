@@ -6,7 +6,7 @@ from typing import Dict, Tuple, Any
 # The real OigCloudApi is imported only when needed so that local mock
 # mode (OIG_CLOUD_MOCK=1) can run without the external dependency.
 import os
-from security import rate_limiter, RateLimitException
+from oig_cloud_mcp.security import rate_limiter, RateLimitException
 
 
 class SessionCache:
@@ -71,7 +71,12 @@ class SessionCache:
                     return True
 
             sample_path = os.path.join(
-                os.path.dirname(__file__), "sample-response.json"
+                os.path.dirname(__file__),
+                "..",
+                "..",
+                "tests",
+                "fixtures",
+                "sample-response.json",
             )
             return _MockClient(sample_path), "mock_session"
 

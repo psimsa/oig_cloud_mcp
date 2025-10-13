@@ -1,0 +1,14 @@
+{
+    "python-envs.pythonProjects": [],
+    // Use the workspace virtual environment by default (Linux/macOS)
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    // Extra paths Pylance should search for imports (src/ for local package, venv site-packages)
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/.venv/lib/python3.13/site-packages",
+        "${workspaceFolder}/.venv/lib/python3.13/site-packages/*",
+        "${workspaceFolder}/.venv/Lib/site-packages"
+    ],
+    // Reduce noise: ensure Pylance uses workspace interpreter
+    "python.languageServer": "Pylance"
+}

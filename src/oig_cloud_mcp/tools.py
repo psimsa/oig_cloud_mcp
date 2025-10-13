@@ -1,9 +1,10 @@
 from mcp.server.fastmcp import FastMCP, Context
-from session_manager import session_cache
-from security import whitelist, RateLimitException
-from transformer import transform_get_stats
+from oig_cloud_mcp.session_manager import session_cache
+from oig_cloud_mcp.security import whitelist, RateLimitException
+from oig_cloud_mcp.transformer import transform_get_stats
 from typing import Tuple
 import base64
+import binascii
 
 # Create a tools instance
 oig_tools = FastMCP("OIG Cloud Tools")
@@ -40,7 +41,7 @@ def _get_credentials(ctx: Context) -> Tuple[str, str]:
                 email, password = decoded_creds.split(":", 1)
                 if email and password:
                     return email, password
-            except (ValueError, base64.binascii.Error):
+            except (ValueError, binascii.Error):
                 # Malformed token or split failure
                 raise ValueError(
                     "Malformed Authorization header; expected Base64-encoded 'email:password'."
@@ -55,7 +56,8 @@ def _get_credentials(ctx: Context) -> Tuple[str, str]:
 
     # If neither method provides credentials, fail
     raise ValueError(
-        "Missing authentication. Provide credentials via 'Authorization: Basic' header or 'X-OIG-Email'/'X-OIG-Password' headers."
+        "Missing authentication. Provide credentials via 'Authorization: Basic' header "
+        "or 'X-OIG-Email'/'X-OIG-Password' headers."
     )
 
 

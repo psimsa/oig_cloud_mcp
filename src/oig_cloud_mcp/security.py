@@ -11,12 +11,25 @@ class RateLimitException(Exception):
 class Whitelist:
     """Loads a simple newline-separated whitelist of allowed email addresses.
 
-    The whitelist file is expected to live next to this module and be named
-    `whitelist.txt`. Lines beginning with `#` or empty lines are ignored.
+    The whitelist file is expected to be named `whitelist.txt` and can be in:
+    1. The current working directory (for Docker/production)
+    2. The project root (for local development - 3 levels up from this file)
+
+    Lines beginning with `#` or empty lines are ignored.
     """
 
     def __init__(self, path: Optional[str] = None):
-        self.path = path or os.path.join(os.path.dirname(__file__), "whitelist.txt")
+        if path is None:
+            # First try current working directory (Docker/production)
+            cwd_path = os.path.join(os.getcwd(), "whitelist.txt")
+            if os.path.exists(cwd_path):
+                path = cwd_path
+            else:
+                # Fall back to project root (local development)
+                path = os.path.join(
+                    os.path.dirname(__file__), "..", "..", "whitelist.txt"
+                )
+        self.path = os.path.abspath(path)
         self._emails: Set[str] = set()
         self._load()
 
