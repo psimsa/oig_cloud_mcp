@@ -4,6 +4,7 @@ from oig_cloud_mcp.security import whitelist, RateLimitException
 from oig_cloud_mcp.transformer import transform_get_stats
 from typing import Tuple
 import base64
+import binascii
 
 # Create a tools instance
 oig_tools = FastMCP("OIG Cloud Tools")
@@ -40,7 +41,7 @@ def _get_credentials(ctx: Context) -> Tuple[str, str]:
                 email, password = decoded_creds.split(":", 1)
                 if email and password:
                     return email, password
-            except (ValueError, base64.binascii.Error):
+            except (ValueError, binascii.Error):
                 # Malformed token or split failure
                 raise ValueError(
                     "Malformed Authorization header; expected Base64-encoded 'email:password'."
