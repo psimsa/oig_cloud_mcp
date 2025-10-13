@@ -89,8 +89,8 @@ def setup_observability(app):
     OTLPLogExporterHTTP = None
     logs_api = None
     try:
-        from opentelemetry.sdk.logs import LoggerProvider, LoggingHandler
-        from opentelemetry.sdk.logs.export import BatchLogRecordProcessor
+        from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+        from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
         import importlib
         try:
             logs_api = importlib.import_module("opentelemetry.logs")
@@ -103,11 +103,11 @@ def setup_observability(app):
 
     if logs_available:
         try:
-            from opentelemetry.exporter.otlp.proto.grpc.log_exporter import OTLPLogExporter as OTLPLogExporterGRPC
+            from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter as OTLPLogExporterGRPC
         except Exception:
             OTLPLogExporterGRPC = None
         try:
-            from opentelemetry.exporter.otlp.proto.http.log_exporter import OTLPLogExporter as OTLPLogExporterHTTP
+            from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter as OTLPLogExporterHTTP
         except Exception:
             OTLPLogExporterHTTP = None
 
@@ -118,38 +118,67 @@ def setup_observability(app):
     tracer_provider = TracerProvider(resource=resource)
     ot_trace.set_tracer_provider(tracer_provider)
     
-    if protocol == "grpc":
-        span_exporter = OTLPSpanExporterGRPC(endpoint=endpoint) if OTLPSpanExporterGRPC else None
-    else:
-        span_exporter = OTLPSpanExporterHTTP(endpoint=endpoint) if OTLPSpanExporterHTTP else None
-    
-    if span_exporter:
-        tracer_provider.add_span_processor(BatchSpanProcessor(span_exporter))
+    # Create span exporter safely: ensure the symbol is present and callable before instantiating
+    span_exporter = None
+    try:
+        if protocol == "grpc":
+            if OTLPSpanExporterGRPC is not None and callable(OTLPSpanExporterGRPC):
+                span_exporter = OTLPSpanExporterGRPC(endpoint=endpoint)
+        else:
+            if OTLPSpanExporterHTTP is not None and callable(OTLPSpanExporterHTTP):
+                span_exporter = OTLPSpanExporterHTTP(endpoint=endpoint)
+    except Exception as e:
+        print(f"Failed to create span exporter: {e}")
+
+    if span_exporter is not None:
+        try:
+            tracer_provider.add_span_processor(BatchSpanProcessor(span_exporter))
+        except Exception as e:
+            print(f"Failed to add span processor: {e}")
     else:
         print("Span exporter not available; tracing will be partially disabled.")
 
     # --- Logging Setup (optional) ---
     if logs_available and (OTLPLogExporterGRPC or OTLPLogExporterHTTP):
-        logger_provider = LoggerProvider(resource=resource)
-        if logs_api and hasattr(logs_api, "set_logger_provider"):
-            logs_api.set_logger_provider(logger_provider)
-
-        log_exporter = None
-        if protocol == "grpc":
-            log_exporter = OTLPLogExporterGRPC(endpoint=endpoint) if OTLPLogExporterGRPC else None
+        # Ensure LoggerProvider was actually imported and is callable before using it
+        if LoggerProvider is None or not callable(LoggerProvider):
+            print("LoggerProvider not available; skipping OpenTelemetry logging setup.")
         else:
-            log_exporter = OTLPLogExporterHTTP(endpoint=endpoint) if OTLPLogExporterHTTP else None
+            logger_provider = LoggerProvider(resource=resource)
+            if logs_api and hasattr(logs_api, "set_logger_provider"):
+                logs_api.set_logger_provider(logger_provider)
 
-        if log_exporter:
-            logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
-
-            # Instrument the root logger to send standard logs to OTel
+            # Safely create log exporter and attach processors/handlers
+            log_exporter = None
             try:
-                handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
-                logging.getLogger().addHandler(handler)
-                logging.getLogger().setLevel(logging.INFO)
+                if protocol == "grpc":
+                    if OTLPLogExporterGRPC is not None and callable(OTLPLogExporterGRPC):
+                        log_exporter = OTLPLogExporterGRPC(endpoint=endpoint)
+                else:
+                    if OTLPLogExporterHTTP is not None and callable(OTLPLogExporterHTTP):
+                        log_exporter = OTLPLogExporterHTTP(endpoint=endpoint)
             except Exception as e:
-                print(f"Failed to attach OpenTelemetry logging handler: {e}")
+                print(f"Failed to create log exporter: {e}")
+
+            # Add log record processor only if exporter and processor class are available
+            if log_exporter is not None and BatchLogRecordProcessor is not None and callable(BatchLogRecordProcessor):
+                try:
+                    logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+                except Exception as e:
+                    print(f"Failed to add log record processor: {e}")
+            else:
+                print("Log record processor not available; logs will not be exported to OTel.")
+
+            # Instrument the root logger to send standard logs to OTel if handler is available
+            if log_exporter is not None and LoggingHandler is not None and callable(LoggingHandler):
+                try:
+                    handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
+                    logging.getLogger().addHandler(handler)
+                    logging.getLogger().setLevel(logging.INFO)
+                except Exception as e:
+                    print(f"Failed to attach OpenTelemetry logging handler: {e}")
+            else:
+                print("OpenTelemetry LoggingHandler not available; standard logs won't be sent to OTel.")
     else:
         print("OpenTelemetry logging not configured (logs SDK or exporters missing).")
     
