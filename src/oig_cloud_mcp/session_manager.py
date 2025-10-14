@@ -24,7 +24,7 @@ class OigCloudClientProtocol(Protocol):
     """
 
     _phpsessid: str
-    _sample_path: str
+    _sample_path: Optional[str]
     box_id: Optional[str]
 
     def authenticate(self) -> Awaitable[bool]: ...
