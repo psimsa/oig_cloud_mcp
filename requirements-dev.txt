@@ -16,3 +16,7 @@ rich>=14.2.0
 # Type checking and development
 typer>=0.19.2
 pydantic>=2.12.0
+
+# Type stubs for third-party libraries used in the project
+types-requests
+types-urllib3

@@ -126,6 +126,52 @@ black --check .
 black .
 ```
 
+### Static type checking (mypy)
+
+We use mypy for project-wide static type checking. Configuration is in [`setup.cfg:1`](setup.cfg:1) and local stubs are located in [`stubs/`](stubs:1).
+
+- Install developer dependencies (includes mypy and type-stub packages listed in [`requirements-dev.txt:1`](requirements-dev.txt:1)):
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+- Run mypy locally:
+
+```bash
+python -m mypy --config-file=setup.cfg
+```
+
+- Add missing third-party type stubs:
+  - Prefer published `types-*` packages (add them to [`requirements-dev.txt:1`](requirements-dev.txt:1)).
+  - If no published stub exists, add a minimal `.pyi` file to the [`stubs/`](stubs:1) directory and update `setup.cfg` (we already set `mypy_path = stubs`).
+
+- Integrate mypy into pre-commit (we added [`.pre-commit-config.yaml:1`](.pre-commit-config.yaml:1)):
+  1. Install pre-commit:
+  
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+  2. Run hooks on all files (first-time check):
+
+```bash
+pre-commit run --all-files
+```
+
+CI notes:
+- The GitHub Actions workflow already runs mypy in CI at [`.github/workflows/ci.yml:42`](.github/workflows/ci.yml:42). Ensure CI installs dev dependencies (`requirements-dev.txt`) so mypy and any `types-*` packages are available during the check.
+
+Recommended everyday workflow:
+- Run tests and type-check before pushing:
+
+```bash
+pip install -r requirements-dev.txt
+pre-commit run --all-files
+pytest -q
+```
+
 ## CI/CD Pipeline
 
 The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that automatically:
