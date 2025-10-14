@@ -7,7 +7,7 @@ setup(
     version="0.1.0",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    python_requires=">=3.13",
+    python_requires=">=3.12",
     install_requires=[
         "mcp>=1.3.2",
         "httpx>=0.27.0",
