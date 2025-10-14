@@ -9,7 +9,7 @@ Public API
     structured mapping defined in data_mapping_spec.md.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 
 def _create_data_point(value: Any, unit: str, description: str) -> Dict[str, Any]:
@@ -18,6 +18,10 @@ def _create_data_point(value: Any, unit: str, description: str) -> Dict[str, Any
     - Coerces numeric values into either int (for percentage) or float.
     - Rounds floating-point kW values to 3 decimal places for readability.
     """
+    # Declare a union type for the value to satisfy mypy when we assign either
+    # an int (for percentages) or a float (for kW values).
+    v: Union[int, float]
+
     if value is None:
         if unit == "%":
             v = 0
@@ -29,9 +33,8 @@ def _create_data_point(value: Any, unit: str, description: str) -> Dict[str, Any
         if unit == "%":
             v = int(value)
         else:
-            v = float(value)
-            # Round kW-style values to 3 decimal places to keep payloads tidy
-            v = round(v, 3)
+            # Ensure we coerce to float first, then round for kW values.
+            v = round(float(value), 3)
     except Exception:
         # Fall back to sensible defaults if coercion fails
         v = 0 if unit == "%" else 0.0
@@ -138,7 +141,7 @@ def transform_get_stats(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         return {}
 
     # The API response is keyed by device id. Use the first device object.
-    device_obj = next(iter(raw_data.values()), {})
+    device_obj: Dict[str, Any] = next(iter(raw_data.values()), {})
     if not device_obj:
         return {}
 

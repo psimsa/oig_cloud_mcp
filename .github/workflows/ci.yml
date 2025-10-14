@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
@@ -39,6 +38,10 @@ jobs:
     - name: Format with black
       run: |
         black --check .
+
+    - name: Type check with mypy
+      run: |
+        mypy --config-file=setup.cfg
 
     - name: Test with pytest
       run: |

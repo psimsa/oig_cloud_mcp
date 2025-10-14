@@ -1,7 +1,9 @@
 import asyncio
 import time
 import hashlib
-from typing import Dict, Tuple, Any
+from typing import Any, Dict, Tuple, Optional, List, Protocol, Awaitable, Literal, cast
+
+SessionStatus = Literal["session_from_cache", "new_session_created", "mock_session"]
 
 # The real OigCloudApi is imported only when needed so that local mock
 # mode (OIG_CLOUD_MOCK=1) can run without the external dependency.
@@ -14,10 +16,31 @@ from opentelemetry import trace
 tracer = trace.get_tracer(__name__)
 
 
+class OigCloudClientProtocol(Protocol):
+    """Structural protocol describing the minimal client surface used by SessionCache.
+
+    Declared as a Protocol so we can avoid importing the real client at module import
+    time while still giving mypy a useful shape to check against.
+    """
+
+    _phpsessid: str
+    _sample_path: str
+    box_id: Optional[str]
+
+    def authenticate(self) -> Awaitable[bool]: ...
+    def get_stats(self) -> Awaitable[Dict[str, Any]]: ...
+    def get_extended_stats(
+        self, name: str, start_date: str, end_date: str
+    ) -> Awaitable[Dict[str, Any]]: ...
+    def get_notifications(self) -> Awaitable[List[Any]]: ...
+    def set_box_mode(self, mode: Any) -> Awaitable[bool]: ...
+    def set_grid_delivery(self, mode: Any) -> Awaitable[bool]: ...
+
+
 class SessionCache:
     def __init__(self, eviction_time_seconds: int = 43200):  # 12 hours
         # Cache maps credential-hash -> (authenticated client instance, last_used_timestamp)
-        self._cache: Dict[str, Tuple[Any, float]] = {}
+        self._cache: Dict[str, Tuple[OigCloudClientProtocol, float]] = {}
         self._eviction_time = eviction_time_seconds
         self._lock = asyncio.Lock()
         print("SessionCache initialized.")
@@ -28,7 +51,7 @@ class SessionCache:
 
     async def get_session_id(
         self, email: str, password: str, client_ip: str = "unknown"
-    ) -> Tuple[Any, str]:
+    ) -> Tuple[OigCloudClientProtocol, SessionStatus]:
         """
         Get a valid, authenticated OigCloudApi client, authenticating if necessary.
         Returns a tuple of (client, status), where status is
@@ -44,17 +67,17 @@ class SessionCache:
             # Minimal mock client used only for testing. It provides the
             # attributes and coroutines the tools expect.
             class _MockClient:
-                def __init__(self, sample_path):
-                    self._phpsessid = "mock-session"
-                    self._sample_path = sample_path
+                def __init__(self, sample_path: str) -> None:
+                    self._phpsessid: str = "mock-session"
+                    self._sample_path: str = sample_path
                     # Mock clients may be asked to report a box_id by the tools.
                     # Initialize to None and populate when get_stats() is called.
-                    self.box_id = None
+                    self.box_id: Optional[str] = None
 
-                async def authenticate(self):
+                async def authenticate(self) -> bool:
                     return True
 
-                async def get_stats(self):
+                async def get_stats(self) -> Dict[str, Any]:
                     import json
                     from pathlib import Path
 
@@ -63,23 +86,25 @@ class SessionCache:
                         return json.loads(p.read_text())
                     return {}
 
-                async def get_extended_stats(self, name, start_date, end_date):
+                async def get_extended_stats(
+                    self, name: str, start_date: str, end_date: str
+                ) -> Dict[str, Any]:
                     return {}
 
-                async def get_notifications(self):
+                async def get_notifications(self) -> List[Any]:
                     return []
 
                 # Provide minimal implementations for write actions so that
                 # tools that call these methods in mock mode behave predictably.
-                async def set_box_mode(self, mode):
+                async def set_box_mode(self, mode: Any) -> bool:
                     # In the mock we simply accept the value and pretend it succeeded.
                     return True
 
-                async def set_grid_delivery(self, mode):
+                async def set_grid_delivery(self, mode: Any) -> bool:
                     # Accept numeric flags (1/0) and pretend success.
                     return True
 
-            sample_path = os.path.join(
+            sample_path: str = os.path.join(
                 os.path.dirname(__file__),
                 "..",
                 "..",
@@ -87,7 +112,10 @@ class SessionCache:
                 "fixtures",
                 "sample-response.json",
             )
-            return _MockClient(sample_path), "mock_session"
+            return (
+                cast(OigCloudClientProtocol, _MockClient(sample_path)),
+                "mock_session",
+            )
 
         key = self._get_key(email, password)
         async with self._lock:
@@ -153,4 +181,4 @@ class SessionCache:
 
 
 # Create a single instance to be used by the server
-session_cache = SessionCache()
+session_cache: SessionCache = SessionCache()
