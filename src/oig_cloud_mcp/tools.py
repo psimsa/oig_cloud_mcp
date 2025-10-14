@@ -1,5 +1,9 @@
 from mcp.server.fastmcp import FastMCP, Context
-from oig_cloud_mcp.session_manager import session_cache, OigCloudClientProtocol, SessionStatus
+from oig_cloud_mcp.session_manager import (
+    session_cache,
+    OigCloudClientProtocol,
+    SessionStatus,
+)
 from oig_cloud_mcp.security import whitelist, RateLimitException
 from oig_cloud_mcp.transformer import transform_get_stats
 from typing import Tuple, Dict, Any, Optional, List, Mapping
@@ -106,7 +110,11 @@ async def get_basic_data(ctx: Context) -> ResponseDict:
 
     try:
         request: Optional[Any] = ctx.request_context.request
-        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client_ip: str = (
+            request.client.host
+            if request and getattr(request, "client", None)
+            else "unknown"
+        )
         client: OigCloudClientProtocol
         status: SessionStatus
         client, status = await session_cache.get_session_id(
@@ -127,7 +135,9 @@ async def get_basic_data(ctx: Context) -> ResponseDict:
         }
 
     session_id: str = getattr(client, "_phpsessid", "") or ""
-    preview: str = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+    preview: str = (
+        f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+    )
 
     # Transform the raw API response into the AI-friendly schema
     try:
@@ -145,7 +155,9 @@ async def get_basic_data(ctx: Context) -> ResponseDict:
 
 
 @oig_tools.tool()
-async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> ResponseDict:
+async def get_extended_data(
+    ctx: Context, start_date: str, end_date: str
+) -> ResponseDict:
     """Retrieves historical time-series data for a specified period from OIG Cloud.
 
     The `name` parameter for the underlying API is hardcoded to "history".
@@ -166,7 +178,11 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> Res
 
     try:
         request: Optional[Any] = ctx.request_context.request
-        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client_ip: str = (
+            request.client.host
+            if request and getattr(request, "client", None)
+            else "unknown"
+        )
         client: OigCloudClientProtocol
         status: SessionStatus
         client, status = await session_cache.get_session_id(
@@ -179,7 +195,9 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> Res
 
     # Call the extended stats endpoint with the name "history"
     try:
-        live_data: Dict[str, Any] = await client.get_extended_stats("history", start_date, end_date)
+        live_data: Dict[str, Any] = await client.get_extended_stats(
+            "history", start_date, end_date
+        )
     except Exception as e:
         return {
             "status": "error",
@@ -187,7 +205,9 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> Res
         }
 
     session_id: str = getattr(client, "_phpsessid", "") or ""
-    preview: str = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+    preview: str = (
+        f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+    )
 
     return {
         "status": "success",
@@ -218,7 +238,11 @@ async def get_notifications(ctx: Context) -> ResponseDict:
 
     try:
         request: Optional[Any] = ctx.request_context.request
-        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client_ip: str = (
+            request.client.host
+            if request and getattr(request, "client", None)
+            else "unknown"
+        )
         client: OigCloudClientProtocol
         status: SessionStatus
         client, status = await session_cache.get_session_id(
@@ -238,7 +262,9 @@ async def get_notifications(ctx: Context) -> ResponseDict:
         }
 
     session_id: str = getattr(client, "_phpsessid", "") or ""
-    preview: str = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+    preview: str = (
+        f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+    )
 
     return {
         "status": "success",
@@ -279,7 +305,11 @@ async def set_box_mode(ctx: Context, mode: str) -> ResponseDict:
 
     try:
         request: Optional[Any] = ctx.request_context.request
-        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client_ip: str = (
+            request.client.host
+            if request and getattr(request, "client", None)
+            else "unknown"
+        )
         client: OigCloudClientProtocol
         status: SessionStatus
         client, status = await session_cache.get_session_id(
@@ -338,7 +368,11 @@ async def set_grid_delivery(ctx: Context, mode: int) -> ResponseDict:
 
     try:
         request: Optional[Any] = ctx.request_context.request
-        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client_ip: str = (
+            request.client.host
+            if request and getattr(request, "client", None)
+            else "unknown"
+        )
         client: OigCloudClientProtocol
         status: SessionStatus
         client, status = await session_cache.get_session_id(

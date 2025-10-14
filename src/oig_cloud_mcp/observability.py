@@ -15,6 +15,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 # --- Fail2ban Logger Setup ---
 FAIL2BAN_LOGGER_NAME: str = "oig_mcp_auth_failures"
 
+
 # Protocols used to safely type optional OpenTelemetry SDK components when they are
 # imported at runtime. These describe the small subset of the SDK surface that this
 # module actually relies on so type-checkers can validate usage without requiring
@@ -26,6 +27,7 @@ class LoggerProviderProtocol(Protocol):
 
 class BatchLogRecordProcessorProtocol(Protocol):
     def __init__(self, exporter: Any) -> None: ...
+
 
 class LoggingHandlerProtocol(Protocol):
     def __init__(self, level: int = ..., logger_provider: Any = ...) -> None: ...
@@ -211,9 +213,9 @@ def setup_observability(app: Any) -> None:
                 try:
                     processor = BatchLogRecordProcessor(log_exporter)
                     # Cast to the protocol so type-checkers understand the instance
-                    cast(LoggerProviderProtocol, logger_provider).add_log_record_processor(
-                        processor
-                    )
+                    cast(
+                        LoggerProviderProtocol, logger_provider
+                    ).add_log_record_processor(processor)
                 except Exception as e:
                     logger.warning("Failed to add log record processor: %s", e)
             else:
@@ -230,7 +232,9 @@ def setup_observability(app: Any) -> None:
                 try:
                     handler: logging.Handler = cast(
                         logging.Handler,
-                        LoggingHandler(level=logging.INFO, logger_provider=logger_provider),
+                        LoggingHandler(
+                            level=logging.INFO, logger_provider=logger_provider
+                        ),
                     )
                     logging.getLogger().addHandler(handler)
                     logging.getLogger().setLevel(logging.INFO)

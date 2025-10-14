@@ -15,19 +15,23 @@ from opentelemetry import trace
 
 tracer = trace.get_tracer(__name__)
 
+
 class OigCloudClientProtocol(Protocol):
     """Structural protocol describing the minimal client surface used by SessionCache.
 
     Declared as a Protocol so we can avoid importing the real client at module import
     time while still giving mypy a useful shape to check against.
     """
+
     _phpsessid: str
     _sample_path: str
     box_id: Optional[str]
 
     def authenticate(self) -> Awaitable[bool]: ...
     def get_stats(self) -> Awaitable[Dict[str, Any]]: ...
-    def get_extended_stats(self, name: str, start_date: str, end_date: str) -> Awaitable[Dict[str, Any]]: ...
+    def get_extended_stats(
+        self, name: str, start_date: str, end_date: str
+    ) -> Awaitable[Dict[str, Any]]: ...
     def get_notifications(self) -> Awaitable[List[Any]]: ...
     def set_box_mode(self, mode: Any) -> Awaitable[bool]: ...
     def set_grid_delivery(self, mode: Any) -> Awaitable[bool]: ...
@@ -82,7 +86,9 @@ class SessionCache:
                         return json.loads(p.read_text())
                     return {}
 
-                async def get_extended_stats(self, name: str, start_date: str, end_date: str) -> Dict[str, Any]:
+                async def get_extended_stats(
+                    self, name: str, start_date: str, end_date: str
+                ) -> Dict[str, Any]:
                     return {}
 
                 async def get_notifications(self) -> List[Any]:
@@ -106,7 +112,10 @@ class SessionCache:
                 "fixtures",
                 "sample-response.json",
             )
-            return cast(OigCloudClientProtocol, _MockClient(sample_path)), "mock_session"
+            return (
+                cast(OigCloudClientProtocol, _MockClient(sample_path)),
+                "mock_session",
+            )
 
         key = self._get_key(email, password)
         async with self._lock:

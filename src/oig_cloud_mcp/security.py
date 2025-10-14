@@ -60,6 +60,7 @@ class _UserState(TypedDict):
     failed_attempts: int
     lockout_until: float
 
+
 class RateLimiter:
     """Simple in-memory exponential backoff rate limiter for authentication attempts.
 
@@ -89,7 +90,9 @@ class RateLimiter:
             if not state:
                 # Initialize state for the user
                 # Explicitly create a properly-typed _UserState mapping.
-                self._user_state[email] = cast(_UserState, {"failed_attempts": 0, "lockout_until": 0.0})
+                self._user_state[email] = cast(
+                    _UserState, {"failed_attempts": 0, "lockout_until": 0.0}
+                )
                 return
 
             lockout_until = state.get("lockout_until", 0)
@@ -114,7 +117,9 @@ class RateLimiter:
             failures: int = state["failed_attempts"]
             if failures >= self.MAX_FAILURES:
                 exponent: int = failures - self.MAX_FAILURES
-                lockout: float = min(self.INITIAL_LOCKOUT * (2**exponent), self.MAX_LOCKOUT)
+                lockout: float = min(
+                    self.INITIAL_LOCKOUT * (2**exponent), self.MAX_LOCKOUT
+                )
                 state["lockout_until"] = time.time() + lockout
                 print(
                     f"User '{email}' locked out for {int(lockout)} seconds after {failures} failures."
