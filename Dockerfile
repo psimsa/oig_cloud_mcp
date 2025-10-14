@@ -32,6 +32,11 @@ COPY whitelist.txt .
 # Change ownership of the app directory
 RUN chown -R appuser:appuser /home/appuser
 
+# Create and set permissions for the log directory
+RUN mkdir -p /var/log && \
+    touch /var/log/oig_mcp_auth.log && \
+    chown -R appuser:appuser /var/log
+
 # Switch to the non-privileged user
 USER appuser
 

@@ -75,6 +75,8 @@ def mock_context():
         "x-oig-email": "test@example.com",
         "x-oig-password": "test_password",
     }
+    # Ensure request.client is explicit so client IP extraction is deterministic in tests
+    ctx.request_context.request.client = None
     return ctx
 
 
@@ -89,6 +91,8 @@ def mock_context_readonly():
         "x-oig-password": "test_password",
         "x-oig-readonly-access": "true",
     }
+    # Ensure request.client is explicit so client IP extraction is deterministic in tests
+    ctx.request_context.request.client = None
     return ctx
 
 
@@ -103,6 +107,8 @@ def mock_context_write():
         "x-oig-password": "test_password",
         "x-oig-readonly-access": "false",
     }
+    # Ensure request.client is explicit so client IP extraction is deterministic in tests
+    ctx.request_context.request.client = None
     return ctx
 
 
@@ -116,6 +122,8 @@ def mock_context_basic_auth():
     # Base64 encode 'test@example.com:test_password'
     token = "dGVzdEBleGFtcGxlLmNvbTp0ZXN0X3Bhc3N3b3Jk"
     ctx.request_context.request.headers = {"authorization": f"Basic {token}"}
+    # Ensure request.client is explicit so client IP extraction is deterministic in tests
+    ctx.request_context.request.client = None
     return ctx
 
 
@@ -198,7 +206,7 @@ class TestGetBasicData:
         mock_client.get_stats.assert_called_once()
         # Verify the correct email was passed to the session cache
         mock_cache.get_session_id.assert_called_with(
-            "test@example.com", "test_password"
+            "test@example.com", "test_password", client_ip="unknown"
         )
 
     @pytest.mark.asyncio
@@ -221,7 +229,7 @@ class TestGetBasicData:
         assert result["status"] == "success"
         # Assert that the session cache was called with the credentials from Basic Auth, not the custom headers
         mock_cache.get_session_id.assert_called_with(
-            "test@example.com", "test_password"
+            "test@example.com", "test_password", client_ip="unknown"
         )
 
 
