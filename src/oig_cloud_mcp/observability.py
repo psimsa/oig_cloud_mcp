@@ -7,21 +7,36 @@ It also configures a dedicated logger for fail2ban.
 
 import os
 import logging
-from typing import Optional
+from typing import Optional, Any, Callable, Dict, Type, Protocol, cast
 
 # Module logger
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 # --- Fail2ban Logger Setup ---
-FAIL2BAN_LOGGER_NAME = "oig_mcp_auth_failures"
+FAIL2BAN_LOGGER_NAME: str = "oig_mcp_auth_failures"
+
+# Protocols used to safely type optional OpenTelemetry SDK components when they are
+# imported at runtime. These describe the small subset of the SDK surface that this
+# module actually relies on so type-checkers can validate usage without requiring
+# the full OpenTelemetry types to be installed.
+class LoggerProviderProtocol(Protocol):
+    def __init__(self, resource: Any) -> None: ...
+    def add_log_record_processor(self, processor: Any) -> None: ...
 
 
-def setup_fail2ban_logging():
+class BatchLogRecordProcessorProtocol(Protocol):
+    def __init__(self, exporter: Any) -> None: ...
+
+class LoggingHandlerProtocol(Protocol):
+    def __init__(self, level: int = ..., logger_provider: Any = ...) -> None: ...
+
+
+def setup_fail2ban_logging() -> None:
     """Configures a dedicated file logger for authentication failures."""
-    log_path = os.getenv("FAIL2BAN_LOG_PATH", "/var/log/oig_mcp_auth.log")
+    log_path: str = os.getenv("FAIL2BAN_LOG_PATH", "/var/log/oig_mcp_auth.log")
 
     # Ensure the directory exists
-    log_dir = os.path.dirname(log_path)
+    log_dir: str = os.path.dirname(log_path)
     if not os.path.exists(log_dir):
         try:
             # Create directory with permissions that allow the running user to write
@@ -31,15 +46,15 @@ def setup_fail2ban_logging():
             return
 
     # Create the logger
-    fail2ban_logger = logging.getLogger(FAIL2BAN_LOGGER_NAME)
+    fail2ban_logger: logging.Logger = logging.getLogger(FAIL2BAN_LOGGER_NAME)
     fail2ban_logger.setLevel(logging.INFO)
     fail2ban_logger.propagate = False  # Prevent logs from going to the root logger/OTel
 
     # Use a file handler
     try:
-        handler = logging.FileHandler(log_path)
+        handler: logging.Handler = logging.FileHandler(log_path)
         # Format: timestamp: oig-mcp-auth: FAILED for user [email] from IP [client_ip]
-        formatter = logging.Formatter(
+        formatter: logging.Formatter = logging.Formatter(
             "%(asctime)s: oig-mcp-auth: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
         handler.setFormatter(formatter)
@@ -53,11 +68,11 @@ def setup_fail2ban_logging():
         print(f"Failed to set up fail2ban logger: {e}")
 
 
-def setup_observability(app):
+def setup_observability(app: Any) -> None:
     """Initializes OpenTelemetry tracing, logging, and FastAPI instrumentation."""
-    service_name = os.getenv("OTEL_SERVICE_NAME", "oig-cloud-mcp")
-    protocol = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
-    endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    service_name: str = os.getenv("OTEL_SERVICE_NAME", "oig-cloud-mcp")
+    protocol: str = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
+    endpoint: Optional[str] = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
     if not endpoint:
         logger.info("OTel endpoint not configured. Skipping OpenTelemetry setup.")
@@ -78,8 +93,8 @@ def setup_observability(app):
         return
 
     # Attempt to import span exporters (optional)
-    OTLPSpanExporterGRPC = None
-    OTLPSpanExporterHTTP = None
+    OTLPSpanExporterGRPC: Optional[Type[Any]] = None
+    OTLPSpanExporterHTTP: Optional[Type[Any]] = None
     try:
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
             OTLPSpanExporter as OTLPSpanExporterGRPC,
@@ -95,12 +110,12 @@ def setup_observability(app):
 
     # Attempt to import logs SDK and log-related exporters and handlers (optional)
     logs_available = False
-    LoggerProvider = None
-    LoggingHandler = None
-    BatchLogRecordProcessor = None
-    OTLPLogExporterGRPC = None
-    OTLPLogExporterHTTP = None
-    logs_api = None
+    LoggerProvider: Optional[Type[LoggerProviderProtocol]] = None
+    LoggingHandler: Optional[Type[LoggingHandlerProtocol]] = None
+    BatchLogRecordProcessor: Optional[Type[BatchLogRecordProcessorProtocol]] = None
+    OTLPLogExporterGRPC: Optional[Type[Any]] = None
+    OTLPLogExporterHTTP: Optional[Type[Any]] = None
+    logs_api: Optional[Any] = None
     try:
         from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
         from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
@@ -142,7 +157,7 @@ def setup_observability(app):
     ot_trace.set_tracer_provider(tracer_provider)
 
     # Create span exporter safely: ensure the symbol is present and callable before instantiating
-    span_exporter = None
+    span_exporter: Optional[Any] = None
     try:
         if protocol == "grpc":
             if OTLPSpanExporterGRPC is not None and callable(OTLPSpanExporterGRPC):
@@ -172,7 +187,7 @@ def setup_observability(app):
                 logs_api.set_logger_provider(logger_provider)
 
             # Safely create log exporter and attach processors/handlers
-            log_exporter = None
+            log_exporter: Optional[Any] = None
             try:
                 if protocol == "grpc":
                     if OTLPLogExporterGRPC is not None and callable(
@@ -194,8 +209,10 @@ def setup_observability(app):
                 and callable(BatchLogRecordProcessor)
             ):
                 try:
-                    logger_provider.add_log_record_processor(
-                        BatchLogRecordProcessor(log_exporter)
+                    processor = BatchLogRecordProcessor(log_exporter)
+                    # Cast to the protocol so type-checkers understand the instance
+                    cast(LoggerProviderProtocol, logger_provider).add_log_record_processor(
+                        processor
                     )
                 except Exception as e:
                     logger.warning("Failed to add log record processor: %s", e)
@@ -211,8 +228,9 @@ def setup_observability(app):
                 and callable(LoggingHandler)
             ):
                 try:
-                    handler = LoggingHandler(
-                        level=logging.INFO, logger_provider=logger_provider
+                    handler: logging.Handler = cast(
+                        logging.Handler,
+                        LoggingHandler(level=logging.INFO, logger_provider=logger_provider),
                     )
                     logging.getLogger().addHandler(handler)
                     logging.getLogger().setLevel(logging.INFO)
@@ -220,10 +238,10 @@ def setup_observability(app):
                     logger.warning(
                         "Failed to attach OpenTelemetry logging handler: %s", e
                     )
-            else:
-                print(
-                    "OpenTelemetry LoggingHandler not available; standard logs won't be sent to OTel."
-                )
+                else:
+                    print(
+                        "OpenTelemetry LoggingHandler not available; standard logs won't be sent to OTel."
+                    )
     else:
         logger.info(
             "OpenTelemetry logging not configured (logs SDK or exporters missing)."

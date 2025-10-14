@@ -1,8 +1,8 @@
 from mcp.server.fastmcp import FastMCP, Context
-from oig_cloud_mcp.session_manager import session_cache
+from oig_cloud_mcp.session_manager import session_cache, OigCloudClientProtocol, SessionStatus
 from oig_cloud_mcp.security import whitelist, RateLimitException
 from oig_cloud_mcp.transformer import transform_get_stats
-from typing import Tuple
+from typing import Tuple, Dict, Any, Optional, List, Mapping
 import base64
 import binascii
 
@@ -10,8 +10,10 @@ from opentelemetry import trace
 
 tracer = trace.get_tracer(__name__)
 
+ResponseDict = Dict[str, Any]
+
 # Create a tools instance
-oig_tools = FastMCP("OIG Cloud Tools")
+oig_tools: FastMCP = FastMCP("OIG Cloud Tools")
 
 
 def _get_credentials(ctx: Context) -> Tuple[str, str]:
@@ -28,11 +30,14 @@ def _get_credentials(ctx: Context) -> Tuple[str, str]:
         either `Basic` or `Bearer` labels for compatibility.
     """
     with tracer.start_as_current_span("get_credentials") as span:
-        request = ctx.request_context.request
+        request: Optional[Any] = ctx.request_context.request
         if not request:
             raise ValueError("Request context not available")
 
-        headers = request.headers
+        headers: Mapping[str, str] = request.headers
+        # Pre-declare as Optional to allow assignments from multiple control-flow paths
+        email: Optional[str] = None
+        password: Optional[str] = None
 
         # Priority 1: Check for Authorization header. Accept either 'Basic' or 'Bearer'
         # labels because some clients only allow a Bearer label even for basic-style
@@ -80,7 +85,7 @@ def _is_readonly(ctx: Context) -> bool:
 
 
 @oig_tools.tool()
-async def get_basic_data(ctx: Context) -> dict:
+async def get_basic_data(ctx: Context) -> ResponseDict:
     """Fetches a real-time snapshot of the PV system from the user's OIG Cloud account.
 
     Uses an authenticated OigCloudApi client supplied by `session_manager.SessionCache`.
@@ -100,8 +105,10 @@ async def get_basic_data(ctx: Context) -> dict:
         }
 
     try:
-        request = ctx.request_context.request
-        client_ip = request.client.host if request and request.client else "unknown"
+        request: Optional[Any] = ctx.request_context.request
+        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client: OigCloudClientProtocol
+        status: SessionStatus
         client, status = await session_cache.get_session_id(
             email, password, client_ip=client_ip
         )
@@ -112,19 +119,19 @@ async def get_basic_data(ctx: Context) -> dict:
 
     # Use the authenticated client to fetch live stats
     try:
-        live_data = await client.get_stats()
+        live_data: Dict[str, Any] = await client.get_stats()
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to fetch data from OIG Cloud: {e}",
         }
 
-    session_id = getattr(client, "_phpsessid", "") or ""
-    preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+    session_id: str = getattr(client, "_phpsessid", "") or ""
+    preview: str = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
 
     # Transform the raw API response into the AI-friendly schema
     try:
-        transformed_data = transform_get_stats(live_data)
+        transformed_data: Any = transform_get_stats(live_data)
     except Exception:
         # Fall back to raw payload if transformation fails for any reason
         transformed_data = live_data
@@ -138,7 +145,7 @@ async def get_basic_data(ctx: Context) -> dict:
 
 
 @oig_tools.tool()
-async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dict:
+async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> ResponseDict:
     """Retrieves historical time-series data for a specified period from OIG Cloud.
 
     The `name` parameter for the underlying API is hardcoded to "history".
@@ -158,8 +165,10 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
         }
 
     try:
-        request = ctx.request_context.request
-        client_ip = request.client.host if request and request.client else "unknown"
+        request: Optional[Any] = ctx.request_context.request
+        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client: OigCloudClientProtocol
+        status: SessionStatus
         client, status = await session_cache.get_session_id(
             email, password, client_ip=client_ip
         )
@@ -170,15 +179,15 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
 
     # Call the extended stats endpoint with the name "history"
     try:
-        live_data = await client.get_extended_stats("history", start_date, end_date)
+        live_data: Dict[str, Any] = await client.get_extended_stats("history", start_date, end_date)
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to fetch historical data from OIG Cloud: {e}",
         }
 
-    session_id = getattr(client, "_phpsessid", "") or ""
-    preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+    session_id: str = getattr(client, "_phpsessid", "") or ""
+    preview: str = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
 
     return {
         "status": "success",
@@ -189,7 +198,7 @@ async def get_extended_data(ctx: Context, start_date: str, end_date: str) -> dic
 
 
 @oig_tools.tool()
-async def get_notifications(ctx: Context) -> dict:
+async def get_notifications(ctx: Context) -> ResponseDict:
     """Fetches system alerts, warnings, and informational messages from OIG Cloud.
 
     Credentials may be provided either via the standard HTTP `Authorization: Basic` header
@@ -208,8 +217,10 @@ async def get_notifications(ctx: Context) -> dict:
         }
 
     try:
-        request = ctx.request_context.request
-        client_ip = request.client.host if request and request.client else "unknown"
+        request: Optional[Any] = ctx.request_context.request
+        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client: OigCloudClientProtocol
+        status: SessionStatus
         client, status = await session_cache.get_session_id(
             email, password, client_ip=client_ip
         )
@@ -219,15 +230,15 @@ async def get_notifications(ctx: Context) -> dict:
         return {"status": "error", "message": "Authentication failed with OIG Cloud."}
 
     try:
-        live_data = await client.get_notifications()
+        live_data: Any = await client.get_notifications()
     except Exception as e:
         return {
             "status": "error",
             "message": f"Failed to fetch notifications from OIG Cloud: {e}",
         }
 
-    session_id = getattr(client, "_phpsessid", "") or ""
-    preview = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
+    session_id: str = getattr(client, "_phpsessid", "") or ""
+    preview: str = f"{session_id[:4]}...{session_id[-4:]}" if session_id else "(unknown)"
 
     return {
         "status": "success",
@@ -238,7 +249,7 @@ async def get_notifications(ctx: Context) -> dict:
 
 
 @oig_tools.tool()
-async def set_box_mode(ctx: Context, mode: str) -> dict:
+async def set_box_mode(ctx: Context, mode: str) -> ResponseDict:
     """
     Sets the operating mode of the main control box (e.g., 'Home 1', 'Home 2').
     This is a write operation and requires readonly access to be disabled by setting
@@ -267,8 +278,10 @@ async def set_box_mode(ctx: Context, mode: str) -> dict:
         }
 
     try:
-        request = ctx.request_context.request
-        client_ip = request.client.host if request and request.client else "unknown"
+        request: Optional[Any] = ctx.request_context.request
+        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client: OigCloudClientProtocol
+        status: SessionStatus
         client, status = await session_cache.get_session_id(
             email, password, client_ip=client_ip
         )
@@ -276,7 +289,7 @@ async def set_box_mode(ctx: Context, mode: str) -> dict:
         if not getattr(client, "box_id", None):
             await client.get_stats()
 
-        success = await client.set_box_mode(mode)
+        success: bool = await client.set_box_mode(mode)
         if success:
             return {
                 "status": "success",
@@ -295,7 +308,7 @@ async def set_box_mode(ctx: Context, mode: str) -> dict:
 
 
 @oig_tools.tool()
-async def set_grid_delivery(ctx: Context, mode: int) -> dict:
+async def set_grid_delivery(ctx: Context, mode: int) -> ResponseDict:
     """
     Sets the grid delivery mode (e.g., 1 for enabled, 0 for disabled).
     This is a write operation and requires readonly access to be disabled by setting
@@ -324,8 +337,10 @@ async def set_grid_delivery(ctx: Context, mode: int) -> dict:
         }
 
     try:
-        request = ctx.request_context.request
-        client_ip = request.client.host if request and request.client else "unknown"
+        request: Optional[Any] = ctx.request_context.request
+        client_ip: str = request.client.host if request and getattr(request, "client", None) else "unknown"
+        client: OigCloudClientProtocol
+        status: SessionStatus
         client, status = await session_cache.get_session_id(
             email, password, client_ip=client_ip
         )
@@ -333,7 +348,7 @@ async def set_grid_delivery(ctx: Context, mode: int) -> dict:
         if not getattr(client, "box_id", None):
             await client.get_stats()
 
-        success = await client.set_grid_delivery(mode)
+        success: bool = await client.set_grid_delivery(mode)
         if success:
             return {
                 "status": "success",
