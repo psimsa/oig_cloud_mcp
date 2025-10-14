@@ -1,46 +1,52 @@
-# Stage 1: Builder - Install dependencies
+# Stage 1: Builder - Install dependencies into a virtual environment
 FROM python:3.13-slim-bookworm as builder
 
-# Install git, which is required for pip to install the git-based dependency
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Install git for git-based dependencies and clean up apt cache
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
+# Create a virtual environment
+ENV VENV_PATH=/opt/venv
+RUN python3 -m venv $VENV_PATH
+ENV PATH="$VENV_PATH/bin:$PATH"
+
+# Copy requirements and source code
 WORKDIR /app
-
-# Copy requirements and setup files
 COPY requirements.txt setup.py ./
 COPY src/ ./src/
 
-# Install dependencies and the package
+# Install dependencies into the virtual environment
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir .
+
+# ---
 
 # Stage 2: Final Image - Setup the application
 FROM python:3.13-slim-bookworm
 
-# Create a non-privileged user to run the application
+# Create a non-privileged user
 RUN useradd --create-home appuser
+
+# Copy the virtual environment from the builder stage
+ENV VENV_PATH=/opt/venv
+COPY --from=builder $VENV_PATH $VENV_PATH
+
+# Set the PATH to use the virtual environment
+ENV PATH="$VENV_PATH/bin:$PATH"
+
+# Set up the application directory
 WORKDIR /home/appuser/app
-
-# Copy installed dependencies from the builder stage
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-# Copy application scripts and runtime files
 COPY bin/ ./bin/
 COPY whitelist.txt .
 
-# Change ownership of the app directory
-RUN chown -R appuser:appuser /home/appuser
-
-# Create and set permissions for the log directory
+# Create log file and set permissions for all necessary directories
 RUN mkdir -p /var/log && \
     touch /var/log/oig_mcp_auth.log && \
-    chown -R appuser:appuser /var/log
+    chown -R appuser:appuser /var/log /home/appuser
 
 # Switch to the non-privileged user
 USER appuser
 
-# Expose the port the server runs on
+# Expose the port
 EXPOSE 8000
 
 # Command to run the application
