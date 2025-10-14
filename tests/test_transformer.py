@@ -1,7 +1,8 @@
 """Unit tests for transformer.py module."""
 
 import json
-import pathlib
+from pathlib import Path
+from typing import Dict, Any, Optional
 from oig_cloud_mcp.transformer import (
     transform_get_stats,
     _create_data_point,
@@ -14,24 +15,24 @@ from oig_cloud_mcp.transformer import (
 class TestCreateDataPoint:
     """Tests for _create_data_point helper function."""
 
-    def test_with_valid_float_kw(self):
+    def test_with_valid_float_kw(self) -> None:
         result = _create_data_point(1.23456, "kW", "Test description")
         assert result["value"] == 1.235
         assert result["unit"] == "kW"
         assert result["description"] == "Test description"
 
-    def test_with_valid_percentage(self):
+    def test_with_valid_percentage(self) -> None:
         result = _create_data_point(89, "%", "Battery level")
         assert result["value"] == 89
         assert result["unit"] == "%"
         assert result["description"] == "Battery level"
 
-    def test_with_none_value_kw(self):
+    def test_with_none_value_kw(self) -> None:
         result = _create_data_point(None, "kW", "Test")
         assert result["value"] == 0.0
         assert result["unit"] == "kW"
 
-    def test_with_none_value_percentage(self):
+    def test_with_none_value_percentage(self) -> None:
         result = _create_data_point(None, "%", "Test")
         assert result["value"] == 0
         assert result["unit"] == "%"
@@ -40,7 +41,7 @@ class TestCreateDataPoint:
 class TestTransformSolar:
     """Tests for _transform_solar function."""
 
-    def test_with_valid_data(self):
+    def test_with_valid_data(self) -> None:
         actual_data = {"fv_p1": 3000, "fv_p2": 2500}
         result = _transform_solar(actual_data)
 
@@ -53,7 +54,7 @@ class TestTransformSolar:
         assert result["string_2"]["value"] == 2.5
         assert result["total"]["value"] == 5.5
 
-    def test_with_missing_keys(self):
+    def test_with_missing_keys(self) -> None:
         actual_data = {}
         result = _transform_solar(actual_data)
 
@@ -61,7 +62,7 @@ class TestTransformSolar:
         assert result["string_2"]["value"] == 0.0
         assert result["total"]["value"] == 0.0
 
-    def test_with_invalid_values(self):
+    def test_with_invalid_values(self) -> None:
         actual_data = {"fv_p1": "invalid", "fv_p2": None}
         result = _transform_solar(actual_data)
 
@@ -72,7 +73,7 @@ class TestTransformSolar:
 class TestTransformBattery:
     """Tests for _transform_battery function."""
 
-    def test_with_valid_data(self):
+    def test_with_valid_data(self) -> None:
         actual_data = {"bat_c": 85, "bat_p": -500}
         result = _transform_battery(actual_data)
 
@@ -81,7 +82,7 @@ class TestTransformBattery:
         assert result["power_flow"]["value"] == -0.5
         assert result["power_flow"]["unit"] == "kW"
 
-    def test_with_missing_keys(self):
+    def test_with_missing_keys(self) -> None:
         actual_data = {}
         result = _transform_battery(actual_data)
 
@@ -92,14 +93,14 @@ class TestTransformBattery:
 class TestTransformHousehold:
     """Tests for _transform_household function."""
 
-    def test_with_valid_data(self):
+    def test_with_valid_data(self) -> None:
         actual_data = {"aco_p": 1500}
         result = _transform_household(actual_data)
 
         assert result["total_load"]["value"] == 1.5
         assert result["total_load"]["unit"] == "kW"
 
-    def test_with_missing_keys(self):
+    def test_with_missing_keys(self) -> None:
         actual_data = {}
         result = _transform_household(actual_data)
 
@@ -109,14 +110,12 @@ class TestTransformHousehold:
 class TestTransformGetStats:
     """Tests for the main transform_get_stats function."""
 
-    def test_with_complete_sample_response(self):
-        sample_path = (
-            pathlib.Path(__file__).parent / "fixtures" / "sample-response.json"
-        )
+    def test_with_complete_sample_response(self) -> None:
+        sample_path: Path = Path(__file__).parent / "fixtures" / "sample-response.json"
         with open(sample_path, "r") as f:
-            sample_data = json.load(f)
+            sample_data: Dict[str, Any] = json.load(f)
 
-        result = transform_get_stats(sample_data)
+        result: Dict[str, Any] = transform_get_stats(sample_data)
 
         assert "solar_production" in result
         assert "battery" in result
@@ -134,17 +133,17 @@ class TestTransformGetStats:
         assert result["battery"]["state_of_charge"]["value"] == 89
         assert result["household"]["total_load"]["value"] == 0.253
 
-    def test_with_empty_dict(self):
-        result = transform_get_stats({})
+    def test_with_empty_dict(self) -> None:
+        result: Dict[str, Any] = transform_get_stats({})
         assert result == {}
 
-    def test_with_none(self):
-        result = transform_get_stats(None)
+    def test_with_none(self) -> None:
+        result: Dict[str, Any] = transform_get_stats(None)
         assert result == {}
 
-    def test_with_malformed_input_missing_actual(self):
-        malformed = {"2205232120": {"actual": {}}}
-        result = transform_get_stats(malformed)
+    def test_with_malformed_input_missing_actual(self) -> None:
+        malformed: Dict[str, Any] = {"2205232120": {"actual": {}}}
+        result: Dict[str, Any] = transform_get_stats(malformed)
 
         assert "solar_production" in result
         assert "battery" in result
@@ -153,14 +152,14 @@ class TestTransformGetStats:
         assert result["solar_production"]["total"]["value"] == 0.0
         assert result["battery"]["state_of_charge"]["value"] == 0
 
-    def test_with_empty_device_object(self):
-        malformed = {"2205232120": {}}
-        result = transform_get_stats(malformed)
+    def test_with_empty_device_object(self) -> None:
+        malformed: Dict[str, Any] = {"2205232120": {}}
+        result: Dict[str, Any] = transform_get_stats(malformed)
 
         # Empty device object returns empty dict
         assert result == {}
 
-    def test_with_malformed_input_no_device(self):
-        malformed = {"2205232120": None}
-        result = transform_get_stats(malformed)
+    def test_with_malformed_input_no_device(self) -> None:
+        malformed: Dict[str, Any] = {"2205232120": None}
+        result: Dict[str, Any] = transform_get_stats(malformed)
         assert result == {}

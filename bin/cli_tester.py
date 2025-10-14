@@ -8,7 +8,7 @@ server for quick manual testing.
 import argparse
 import asyncio
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 
 import os
 import sys
@@ -26,8 +26,11 @@ from mcp.client.streamable_http import streamablehttp_client
 
 
 async def call_tool(
-    server_url: str, tool_name: str, arguments: Dict[str, Any], headers: Dict[str, str]
-):
+    server_url: str,
+    tool_name: str,
+    arguments: Dict[str, Any],
+    headers: Dict[str, str],
+) -> None:
     async with streamablehttp_client(server_url, headers=headers) as (
         read_stream,
         write_stream,
@@ -35,10 +38,10 @@ async def call_tool(
     ):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
-            result = await session.call_tool(tool_name, arguments=arguments)
+            result: Any = await session.call_tool(tool_name, arguments=arguments)
 
             # Prefer structuredContent when available
-            structured = getattr(result, "structuredContent", None)
+            structured: Optional[Any] = getattr(result, "structuredContent", None)
             if structured:
                 print(json.dumps(structured, indent=2))
                 return
@@ -79,7 +82,7 @@ def build_arguments(ns: argparse.Namespace) -> Dict[str, Any]:
     return args
 
 
-async def main():
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Call OIG Cloud MCP tools from the command line"
     )
@@ -141,10 +144,10 @@ async def main():
         help="The authentication method to use.",
     )
 
-    ns = parser.parse_args()
-    arguments = build_arguments(ns)
+    ns: argparse.Namespace = parser.parse_args()
+    arguments: Dict[str, Any] = build_arguments(ns)
 
-    headers = {}
+    headers: Dict[str, str] = {}
     if ns.auth_mode == "basic":
         print("Using Basic Authentication.")
         import base64

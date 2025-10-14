@@ -1,22 +1,31 @@
 import builtins
 import importlib
 import types
+from typing import Any
 
 import pytest
 
 from oig_cloud_mcp import observability
 
 
-def test_setup_observability_handles_missing_opentelemetry(monkeypatch, tmp_path):
+def test_setup_observability_handles_missing_opentelemetry(
+    monkeypatch: Any, tmp_path: Any
+) -> None:
     """Simulate that opentelemetry packages are not importable and ensure setup_observability doesn't raise."""
 
     # Point a dummy endpoint so the function attempts to initialize OTel
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://example.invalid:4318")
 
     # Save the real import
-    real_import = builtins.__import__
+    real_import: Any = builtins.__import__
 
-    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+    def fake_import(
+        name: str,
+        globals: Any = None,
+        locals: Any = None,
+        fromlist: Any = (),
+        level: int = 0,
+    ) -> Any:
         # Simulate ImportError for any opentelemetry import
         if name.startswith("opentelemetry"):
             raise ImportError("simulated missing package")

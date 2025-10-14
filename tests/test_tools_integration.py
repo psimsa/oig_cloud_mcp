@@ -2,6 +2,7 @@
 
 import pytest
 from unittest.mock import Mock, AsyncMock
+from typing import Any, Dict, Tuple
 from oig_cloud_mcp.tools import (
     get_basic_data,
     get_extended_data,
@@ -13,7 +14,7 @@ import tempfile
 
 
 @pytest.fixture
-def mock_whitelist(mocker):
+def mock_whitelist(mocker) -> Any:
     """Mock the whitelist to allow test users."""
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
         f.write("test@example.com\n")
@@ -29,16 +30,16 @@ def mock_whitelist(mocker):
 
 
 @pytest.fixture
-def mock_rate_limiter(mocker):
+def mock_rate_limiter(mocker) -> Any:
     """Mock the rate limiter to allow all requests."""
     mock_rl = mocker.patch("oig_cloud_mcp.tools.RateLimitException", Exception)
     return mock_rl
 
 
 @pytest.fixture
-def mock_session_cache(mocker):
+def mock_session_cache(mocker) -> Tuple[Any, Any]:
     """Mock the session cache to return a fake API client."""
-    mock_client = AsyncMock()
+    mock_client: AsyncMock = AsyncMock()
     mock_client.get_stats = AsyncMock(
         return_value={
             "2205232120": {
@@ -59,14 +60,14 @@ def mock_session_cache(mocker):
     mock_client._phpsessid = "test_session_id_12345"
     mock_client.box_id = "test_box_id"
 
-    mock_cache = mocker.patch("oig_cloud_mcp.tools.session_cache")
+    mock_cache: Any = mocker.patch("oig_cloud_mcp.tools.session_cache")
     mock_cache.get_session_id = AsyncMock(return_value=(mock_client, "cached"))
 
     return mock_cache, mock_client
 
 
 @pytest.fixture
-def mock_context():
+def mock_context() -> Any:
     """Create a mock FastMCP Context object with request headers."""
     ctx = Mock()
     ctx.request_context = Mock()
@@ -81,7 +82,7 @@ def mock_context():
 
 
 @pytest.fixture
-def mock_context_readonly():
+def mock_context_readonly() -> Any:
     """Create a mock context with readonly access (default)."""
     ctx = Mock()
     ctx.request_context = Mock()
@@ -97,7 +98,7 @@ def mock_context_readonly():
 
 
 @pytest.fixture
-def mock_context_write():
+def mock_context_write() -> Any:
     """Create a mock context with write access enabled."""
     ctx = Mock()
     ctx.request_context = Mock()
@@ -113,7 +114,7 @@ def mock_context_write():
 
 
 @pytest.fixture
-def mock_context_basic_auth():
+def mock_context_basic_auth() -> Any:
     """Create a mock context with a valid Basic Auth header."""
     ctx = Mock()
     ctx.request_context = Mock()
@@ -133,7 +134,7 @@ class TestGetBasicData:
     @pytest.mark.asyncio
     async def test_success_with_valid_auth(
         self, mock_context, mock_whitelist, mock_session_cache
-    ):
+    ) -> None:
         mock_cache, mock_client = mock_session_cache
 
         result = await get_basic_data(mock_context)
@@ -144,7 +145,7 @@ class TestGetBasicData:
         mock_client.get_stats.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_missing_email_header(self, mock_whitelist):
+    async def test_missing_email_header(self, mock_whitelist) -> None:
         ctx = Mock()
         ctx.request_context = Mock()
         ctx.request_context.request = Mock()
@@ -156,7 +157,7 @@ class TestGetBasicData:
         assert "Missing authentication" in result["message"]
 
     @pytest.mark.asyncio
-    async def test_missing_password_header(self, mock_whitelist):
+    async def test_missing_password_header(self, mock_whitelist) -> None:
         ctx = Mock()
         ctx.request_context = Mock()
         ctx.request_context.request = Mock()
@@ -168,7 +169,7 @@ class TestGetBasicData:
         assert "Missing authentication" in result["message"]
 
     @pytest.mark.asyncio
-    async def test_user_not_on_whitelist(self, mock_session_cache):
+    async def test_user_not_on_whitelist(self, mock_session_cache) -> None:
         mock_cache, mock_client = mock_session_cache
 
         ctx = Mock()
@@ -196,7 +197,7 @@ class TestGetBasicData:
     @pytest.mark.asyncio
     async def test_success_with_basic_auth(
         self, mock_context_basic_auth, mock_whitelist, mock_session_cache
-    ):
+    ) -> None:
         """Verify that authentication succeeds using the Authorization: Basic header."""
         mock_cache, mock_client = mock_session_cache
 
@@ -212,7 +213,7 @@ class TestGetBasicData:
     @pytest.mark.asyncio
     async def test_basic_auth_has_priority(
         self, mock_context_basic_auth, mock_whitelist, mock_session_cache
-    ):
+    ) -> None:
         """Verify that Basic Auth is used even if custom headers are also present."""
         mock_cache, mock_client = mock_session_cache
 
@@ -239,7 +240,7 @@ class TestGetExtendedData:
     @pytest.mark.asyncio
     async def test_success_with_valid_params(
         self, mock_context, mock_whitelist, mock_session_cache
-    ):
+    ) -> None:
         mock_cache, mock_client = mock_session_cache
 
         result = await get_extended_data(mock_context, "2024-01-01", "2024-01-31")
@@ -255,7 +256,9 @@ class TestGetNotifications:
     """Tests for get_notifications tool."""
 
     @pytest.mark.asyncio
-    async def test_success(self, mock_context, mock_whitelist, mock_session_cache):
+    async def test_success(
+        self, mock_context, mock_whitelist, mock_session_cache
+    ) -> None:
         mock_cache, mock_client = mock_session_cache
 
         result = await get_notifications(mock_context)
@@ -271,7 +274,7 @@ class TestSetBoxMode:
     @pytest.mark.asyncio
     async def test_success_with_write_access(
         self, mock_context_write, mock_whitelist, mock_session_cache
-    ):
+    ) -> None:
         mock_cache, mock_client = mock_session_cache
 
         result = await set_box_mode(mock_context_write, "Home 1")
@@ -283,7 +286,7 @@ class TestSetBoxMode:
     @pytest.mark.asyncio
     async def test_denied_in_readonly_mode(
         self, mock_context_readonly, mock_whitelist, mock_session_cache
-    ):
+    ) -> None:
         mock_cache, mock_client = mock_session_cache
 
         result = await set_box_mode(mock_context_readonly, "Home 1")
@@ -295,7 +298,7 @@ class TestSetBoxMode:
     @pytest.mark.asyncio
     async def test_denied_without_readonly_header(
         self, mock_context, mock_whitelist, mock_session_cache
-    ):
+    ) -> None:
         mock_cache, mock_client = mock_session_cache
 
         result = await set_box_mode(mock_context, "Home 1")
@@ -311,7 +314,7 @@ class TestSetGridDelivery:
     @pytest.mark.asyncio
     async def test_success_with_write_access(
         self, mock_context_write, mock_whitelist, mock_session_cache
-    ):
+    ) -> None:
         mock_cache, mock_client = mock_session_cache
 
         result = await set_grid_delivery(mock_context_write, 1)
@@ -322,7 +325,7 @@ class TestSetGridDelivery:
     @pytest.mark.asyncio
     async def test_denied_in_readonly_mode(
         self, mock_context_readonly, mock_whitelist, mock_session_cache
-    ):
+    ) -> None:
         mock_cache, mock_client = mock_session_cache
 
         result = await set_grid_delivery(mock_context_readonly, 1)
