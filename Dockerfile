@@ -1,5 +1,5 @@
 # Stage 1: Builder - Install dependencies into a virtual environment
-FROM python:3.13-slim-bookworm as builder
+FROM python:3.14-slim-bookworm as builder
 
 # Install git for git-based dependencies and clean up apt cache
 RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
@@ -21,7 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 # ---
 
 # Stage 2: Final Image - Setup the application
-FROM python:3.13-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 # Create a non-privileged user
 RUN useradd --create-home appuser
